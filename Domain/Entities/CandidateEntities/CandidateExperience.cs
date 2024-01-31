@@ -1,6 +1,6 @@
-﻿namespace Domain.Entities
+﻿namespace Domain.Entities.CandidateEntities
 {
-    public class UserExperience
+    public class CandidateExperience
     {
         public int Id { get; set; }
         public DateTime StartDate { get; set; }

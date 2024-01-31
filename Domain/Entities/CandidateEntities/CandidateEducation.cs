@@ -1,6 +1,6 @@
-﻿namespace Domain.Entities
+﻿namespace Domain.Entities.CandidateEntities
 {
-    public class UserEducation
+    public class CandidateEducation
     {
         public int Id { get; set; }
         public string Name { get; set; }
