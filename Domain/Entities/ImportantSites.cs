@@ -1,17 +1,20 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Domain.Entities.CandidateEntities;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities
 {
     public class ImportantSites
     {
         [Key]
-        public int Id { get; set; }
+        public string Id { get; set; }
         [Required]
         public string SiteName {  get; set; }
         [Required]
         public string SiteUrl { get; set; }
-        [Required]
-        public int ApplicationUserId { get; set; }
-        public ApplicationUser ApplicationUser { get; set; }
+        public string? CandidateId { get; set; }
+        public virtual Candidate? Candidate { get; set; }
+        public string? EmployerId { get; set; }
+        public virtual Employer? Employer { get; set; }
     }
 }

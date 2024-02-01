@@ -3,7 +3,6 @@
     public class Candidate : ApplicationUser
     {
         public string? About { get; set; }
-        public string? CandidateId { get; set; }
         public virtual ICollection<CandidateEducation> CandidateEducations { get; set;}
         public virtual ICollection<CandidateExperience> CandidateExperience { get; set; }
         public virtual ICollection<CandidateSkills> CandidateSkills { get; set; }

@@ -14,5 +14,12 @@ namespace Presistance
         public DbSet<CandidateSkills> CandidateSkills { get; set; }
         public DbSet<Employer> Employers { get; set; }
         public DbSet<ImportantSites> ImportantSites { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Candidate>().ToTable("Candidates");
+            modelBuilder.Entity<Employer>().ToTable("Employers");
+        }
     }
 }

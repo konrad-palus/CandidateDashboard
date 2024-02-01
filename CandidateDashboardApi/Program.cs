@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Presistance;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -12,11 +13,7 @@ builder.Services.AddDbContext<CandidateDashboardContext>(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<CandidateDashboardContext>();
-    dbContext.Database.EnsureCreated(); 
-}
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -28,5 +25,12 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var dbContext = services.GetRequiredService<CandidateDashboardContext>();
 
+    dbContext.Database.EnsureCreated();
+
+}
 app.Run();

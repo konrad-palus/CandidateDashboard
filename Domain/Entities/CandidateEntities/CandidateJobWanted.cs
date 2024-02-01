@@ -1,11 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities.CandidateEntities
 {
     public class CandidateJobWanted
     {
         [Key]
-        public int Id { get; set; }
+        public string Id { get; set; }
         [Required]
         public string PositionName { get; set; }
         [Required]
@@ -18,7 +19,7 @@ namespace Domain.Entities.CandidateEntities
         public int ExpectedWage { get; set; }
         public int? MinimumWage { get; set; }
         [Required]
-        public int CandidateId { get; set; }
+        [ForeignKey("Id")]
         public virtual Candidate Candidate { get; set; }
     }
 }
