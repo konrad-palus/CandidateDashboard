@@ -12,7 +12,7 @@ namespace Domain.Entities.CandidateEntities
         [Required]
         public string Description { get; set; }
         [Required]
-        [ForeignKey("Id")]
+        [ForeignKey("CandidateId")]
         public virtual Candidate Candidate { get; set; }
     }
 }

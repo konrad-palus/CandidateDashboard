@@ -12,7 +12,7 @@ using Presistance;
 namespace Presistance.Migrations
 {
     [DbContext(typeof(CandidateDashboardContext))]
-    [Migration("20240201132457_InitialCreate")]
+    [Migration("20240201165813_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -201,6 +201,10 @@ namespace Presistance.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("CandidateId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -210,6 +214,8 @@ namespace Presistance.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CandidateId");
 
                     b.ToTable("CandidateSkills");
                 });
@@ -441,7 +447,7 @@ namespace Presistance.Migrations
                 {
                     b.HasOne("Domain.Entities.CandidateEntities.Candidate", "Candidate")
                         .WithMany("CandidateSkills")
-                        .HasForeignKey("Id")
+                        .HasForeignKey("CandidateId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

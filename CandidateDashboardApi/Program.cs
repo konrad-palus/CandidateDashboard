@@ -1,3 +1,4 @@
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Presistance;
 
@@ -11,7 +12,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<CandidateDashboardContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
 
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddEntityFrameworkStores<CandidateDashboardContext>();
+
 var app = builder.Build();
+
+
 
 
 

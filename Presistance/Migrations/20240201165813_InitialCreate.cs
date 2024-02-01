@@ -272,14 +272,15 @@ namespace Presistance.Migrations
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     SkillName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CandidateId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_CandidateSkills", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CandidateSkills_Candidates_Id",
-                        column: x => x.Id,
+                        name: "FK_CandidateSkills_Candidates_CandidateId",
+                        column: x => x.CandidateId,
                         principalTable: "Candidates",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -348,6 +349,11 @@ namespace Presistance.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CandidateSkills_CandidateId",
+                table: "CandidateSkills",
+                column: "CandidateId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ImportantSites_CandidateId",
