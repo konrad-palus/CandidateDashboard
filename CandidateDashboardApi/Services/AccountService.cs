@@ -10,13 +10,13 @@ namespace CandidateDashboardApi.Services
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly CandidateDashboardContext _context;
+        private readonly CandidateDashboardContext _candidateDashboardContext;
 
         public AccountService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, CandidateDashboardContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _context = context;
+            _candidateDashboardContext = context;
         }
 
         public async Task<string> RegisterUserAsync(string login, string registrationEmail, string password, bool isCandidate, string? name, string? lastName)
@@ -32,19 +32,19 @@ namespace CandidateDashboardApi.Services
             var result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
             {
-                throw new System.Exception("Nie udało się zarejestrować użytkownika.");
+                throw new Exception("registration failed");
             }
 
             if (isCandidate)
             {
-                _context.Candidates.Add(new Candidate { Id = user.Id });
+                _candidateDashboardContext.Candidates.Add(new Candidate { Id = user.Id });
             }
             else
             {
-                _context.Employers.Add(new Employer { Id = user.Id });
+                _candidateDashboardContext.Employers.Add(new Employer { Id = user.Id });
             }
 
-            await _context.SaveChangesAsync();
+            await _candidateDashboardContext.SaveChangesAsync();
 
             return user.Id;
         }
@@ -54,7 +54,7 @@ namespace CandidateDashboardApi.Services
             var result = await _signInManager.PasswordSignInAsync(login, password, isPersistent: true, lockoutOnFailure: false);
             if (!result.Succeeded)
             {
-                throw new System.Exception("Logowanie nieudane.");
+                throw new Exception("login failed");
             }
 
             return true;
