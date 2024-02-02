@@ -31,6 +31,8 @@
 
   <ItemGroup>
     <Folder Include="Controllers\RecruterController\" />
+    <Folder Include="Interfaces\" />
+    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

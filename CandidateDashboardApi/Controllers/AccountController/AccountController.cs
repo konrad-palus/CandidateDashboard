@@ -4,23 +4,31 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Presistance;
 
-namespace CandidateDashboardApi.Controllers
+namespace CandidateDashboardApi.Controllers.AccountController
 {
     [ApiController]
     [Route("[controller]")]
-    public class CandidatesController : ControllerBase
+    public class AccountController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly CandidateDashboardContext _candidateDashboardContext;
 
-        public CandidatesController(UserManager<ApplicationUser> userManager, CandidateDashboardContext context)
+        public AccountController
+            (
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> singInManager,
+            CandidateDashboardContext context
+            )
         {
             _userManager = userManager;
+            _signInManager = singInManager;
             _candidateDashboardContext = context;
         }
 
         [HttpPost]
-        public async Task<IActionResult> Registration(string login, string registrationEmail, string password, bool isCandidate, string name, string lastName)
+        [Route("Register")]
+        public async Task<IActionResult> Registration(string login, string registrationEmail, string password, bool isCandidate, string? name, string? lastName)
         {
             if (!ModelState.IsValid)
             {
@@ -55,6 +63,27 @@ namespace CandidateDashboardApi.Controllers
             _candidateDashboardContext.SaveChanges();
 
             return Ok(new { UserId = user.Id });
+        }
+
+        [HttpPost]
+        [Route("Login")]
+        public async Task<IActionResult> Login(string login, string password)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _signInManager.PasswordSignInAsync(login, password, isPersistent: true, lockoutOnFailure: false);
+
+            if (result.Succeeded)
+            {
+                return Ok(new { IsSuccess = true });
+            }
+            else
+            {
+                return BadRequest(new { IsSuccess = false, Message = "Login unsuccessful" });
+            }
         }
     }
 }
