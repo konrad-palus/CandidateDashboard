@@ -1,88 +1,46 @@
-﻿using Domain.Entities;
-using Domain.Entities.CandidateEntities;
-using Microsoft.AspNetCore.Identity;
+﻿using CandidateDashboardApi.Services;
 using Microsoft.AspNetCore.Mvc;
-using Presistance;
 
-namespace CandidateDashboardApi.Controllers.AccountController
+namespace CandidateDashboardApi.Controllers
 {
     [ApiController]
     [Route("[controller]")]
     public class AccountController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly CandidateDashboardContext _candidateDashboardContext;
+        private readonly AccountService _accountService;
 
-        public AccountController
-            (
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> singInManager,
-            CandidateDashboardContext context
-            )
+        public AccountController(AccountService accountService)
         {
-            _userManager = userManager;
-            _signInManager = singInManager;
-            _candidateDashboardContext = context;
+            _accountService = accountService;
         }
 
         [HttpPost]
         [Route("Register")]
         public async Task<IActionResult> Registration(string login, string registrationEmail, string password, bool isCandidate, string? name, string? lastName)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(ModelState);
+                var userId = await _accountService.RegisterUserAsync(login, registrationEmail, password, isCandidate, name, lastName);
+                return Ok(new { UserId = userId });
             }
-
-            var user = new ApplicationUser
+            catch (Exception ex)
             {
-                UserName = login,
-                Email = registrationEmail,
-                Name = name,
-                LastName = lastName,
-            };
-
-            var result = await _userManager.CreateAsync(user, password);
-
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
+                return BadRequest(ex.Message);
             }
-
-            if (isCandidate)
-            {
-                _candidateDashboardContext.Candidates.Add(new Candidate { Id = user.Id });
-
-            }
-            else
-            {
-                _candidateDashboardContext.Employers.Add(new Employer { Id = user.Id });
-            }
-
-            _candidateDashboardContext.SaveChanges();
-
-            return Ok(new { UserId = user.Id });
         }
 
         [HttpPost]
         [Route("Login")]
         public async Task<IActionResult> Login(string login, string password)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(ModelState);
+                var isSuccess = await _accountService.LoginUserAsync(login, password);
+                return Ok(new { IsSuccess = isSuccess });
             }
-
-            var result = await _signInManager.PasswordSignInAsync(login, password, isPersistent: true, lockoutOnFailure: false);
-
-            if (result.Succeeded)
+            catch (Exception ex)
             {
-                return Ok(new { IsSuccess = true });
-            }
-            else
-            {
-                return BadRequest(new { IsSuccess = false, Message = "Login unsuccessful" });
+                return BadRequest(ex.Message);
             }
         }
     }
