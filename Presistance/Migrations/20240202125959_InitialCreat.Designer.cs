@@ -12,8 +12,8 @@ using Presistance;
 namespace Presistance.Migrations
 {
     [DbContext(typeof(CandidateDashboardContext))]
-    [Migration("20240201165813_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20240202125959_InitialCreat")]
+    partial class InitialCreat
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -32,6 +32,9 @@ namespace Presistance.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
+
+                    b.Property<string>("CandidateId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("City")
                         .HasColumnType("nvarchar(max)");
@@ -53,6 +56,9 @@ namespace Presistance.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("EmployerId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -100,6 +106,10 @@ namespace Presistance.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CandidateId");
+
+                    b.HasIndex("EmployerId");
+
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
@@ -109,13 +119,27 @@ namespace Presistance.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
 
-                    b.UseTptMappingStrategy();
+            modelBuilder.Entity("Domain.Entities.CandidateEntities.Candidate", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("About")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Candidates");
                 });
 
             modelBuilder.Entity("Domain.Entities.CandidateEntities.CandidateEducation", b =>
                 {
                     b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CandidateId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Description")
@@ -134,12 +158,17 @@ namespace Presistance.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CandidateId");
+
                     b.ToTable("CandidateEducations");
                 });
 
             modelBuilder.Entity("Domain.Entities.CandidateEntities.CandidateExperience", b =>
                 {
                     b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CandidateId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CompanyName")
@@ -161,12 +190,17 @@ namespace Presistance.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CandidateId");
+
                     b.ToTable("CandidateExperiences");
                 });
 
             modelBuilder.Entity("Domain.Entities.CandidateEntities.CandidateJobWanted", b =>
                 {
                     b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CandidateId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ContractTypeList")
@@ -192,6 +226,8 @@ namespace Presistance.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CandidateId");
 
                     b.ToTable("CandidateJobWanteds");
                 });
@@ -220,6 +256,25 @@ namespace Presistance.Migrations
                     b.ToTable("CandidateSkills");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Employer", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CompanyDescription")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyLogo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Employers");
+                });
+
             modelBuilder.Entity("Domain.Entities.ImportantSites", b =>
                 {
                     b.Property<string>("Id")
@@ -243,9 +298,7 @@ namespace Presistance.Migrations
 
                     b.HasIndex("CandidateId");
 
-                    b.HasIndex("EmployerId")
-                        .IsUnique()
-                        .HasFilter("[EmployerId] IS NOT NULL");
+                    b.HasIndex("EmployerId");
 
                     b.ToTable("ImportantSites");
                 });
@@ -330,10 +383,12 @@ namespace Presistance.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("ProviderKey")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
@@ -370,10 +425,12 @@ namespace Presistance.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
@@ -383,40 +440,26 @@ namespace Presistance.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.CandidateEntities.Candidate", b =>
+            modelBuilder.Entity("Domain.Entities.ApplicationUser", b =>
                 {
-                    b.HasBaseType("Domain.Entities.ApplicationUser");
+                    b.HasOne("Domain.Entities.CandidateEntities.Candidate", "Candidate")
+                        .WithMany()
+                        .HasForeignKey("CandidateId");
 
-                    b.Property<string>("About")
-                        .HasColumnType("nvarchar(max)");
+                    b.HasOne("Domain.Entities.Employer", "Employer")
+                        .WithMany()
+                        .HasForeignKey("EmployerId");
 
-                    b.ToTable("Candidates", (string)null);
-                });
+                    b.Navigation("Candidate");
 
-            modelBuilder.Entity("Domain.Entities.Employer", b =>
-                {
-                    b.HasBaseType("Domain.Entities.ApplicationUser");
-
-                    b.Property<string>("CompanyDescription")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CompanyLogo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CompanyName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.ToTable("Employers", (string)null);
+                    b.Navigation("Employer");
                 });
 
             modelBuilder.Entity("Domain.Entities.CandidateEntities.CandidateEducation", b =>
                 {
                     b.HasOne("Domain.Entities.CandidateEntities.Candidate", "Candidate")
                         .WithMany("CandidateEducations")
-                        .HasForeignKey("Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CandidateId");
 
                     b.Navigation("Candidate");
                 });
@@ -425,9 +468,7 @@ namespace Presistance.Migrations
                 {
                     b.HasOne("Domain.Entities.CandidateEntities.Candidate", "Candidate")
                         .WithMany("CandidateExperience")
-                        .HasForeignKey("Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CandidateId");
 
                     b.Navigation("Candidate");
                 });
@@ -436,9 +477,7 @@ namespace Presistance.Migrations
                 {
                     b.HasOne("Domain.Entities.CandidateEntities.Candidate", "Candidate")
                         .WithMany("CandidateJobWanted")
-                        .HasForeignKey("Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CandidateId");
 
                     b.Navigation("Candidate");
                 });
@@ -456,17 +495,13 @@ namespace Presistance.Migrations
 
             modelBuilder.Entity("Domain.Entities.ImportantSites", b =>
                 {
-                    b.HasOne("Domain.Entities.CandidateEntities.Candidate", "Candidate")
+                    b.HasOne("Domain.Entities.CandidateEntities.Candidate", null)
                         .WithMany("ImportantSites")
                         .HasForeignKey("CandidateId");
 
-                    b.HasOne("Domain.Entities.Employer", "Employer")
-                        .WithOne("ImportantSites")
-                        .HasForeignKey("Domain.Entities.ImportantSites", "EmployerId");
-
-                    b.Navigation("Candidate");
-
-                    b.Navigation("Employer");
+                    b.HasOne("Domain.Entities.Employer", null)
+                        .WithMany("ImportantSites")
+                        .HasForeignKey("EmployerId");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -522,24 +557,6 @@ namespace Presistance.Migrations
 
             modelBuilder.Entity("Domain.Entities.CandidateEntities.Candidate", b =>
                 {
-                    b.HasOne("Domain.Entities.ApplicationUser", null)
-                        .WithOne()
-                        .HasForeignKey("Domain.Entities.CandidateEntities.Candidate", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Entities.Employer", b =>
-                {
-                    b.HasOne("Domain.Entities.ApplicationUser", null)
-                        .WithOne()
-                        .HasForeignKey("Domain.Entities.Employer", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Entities.CandidateEntities.Candidate", b =>
-                {
                     b.Navigation("CandidateEducations");
 
                     b.Navigation("CandidateExperience");
@@ -553,8 +570,7 @@ namespace Presistance.Migrations
 
             modelBuilder.Entity("Domain.Entities.Employer", b =>
                 {
-                    b.Navigation("ImportantSites")
-                        .IsRequired();
+                    b.Navigation("ImportantSites");
                 });
 #pragma warning restore 612, 618
         }

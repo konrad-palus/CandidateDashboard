@@ -20,7 +20,7 @@ namespace CandidateDashboardApi.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string login, string registrationEmail, string contactEmail, string password, string name, string surname)
+        public async Task<IActionResult> Registration(string login, string registrationEmail, string password, bool isCandidate, string name, string lastName)
         {
             if (!ModelState.IsValid)
             {
@@ -31,9 +31,8 @@ namespace CandidateDashboardApi.Controllers
             {
                 UserName = login,
                 Email = registrationEmail,
-                ContactEmail = contactEmail,
                 Name = name,
-                Surname = surname
+                LastName = lastName,
             };
 
             var result = await _userManager.CreateAsync(user, password);
@@ -43,9 +42,17 @@ namespace CandidateDashboardApi.Controllers
                 return BadRequest(result.Errors);
             }
 
-             var candidate = new Candidate { Id = user.Id };
-             _candidateDashboardContext.Candidates.Add(candidate);
-             await _candidateDashboardContext.SaveChangesAsync();
+            if (isCandidate)
+            {
+                _candidateDashboardContext.Candidates.Add(new Candidate { Id = user.Id });
+
+            }
+            else
+            {
+                _candidateDashboardContext.Employers.Add(new Employer { Id = user.Id });
+            }
+
+            _candidateDashboardContext.SaveChanges();
 
             return Ok(new { UserId = user.Id });
         }

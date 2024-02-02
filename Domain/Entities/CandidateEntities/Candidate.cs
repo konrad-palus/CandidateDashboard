@@ -1,7 +1,11 @@
-﻿namespace Domain.Entities.CandidateEntities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Domain.Entities.CandidateEntities
 {
-    public class Candidate : ApplicationUser
+    public class Candidate 
     {
+        [Key]
+        public string Id { get; set; }
         public string? About { get; set; }
         public virtual ICollection<CandidateEducation>? CandidateEducations { get; set;}
         public virtual ICollection<CandidateExperience>? CandidateExperience { get; set; }

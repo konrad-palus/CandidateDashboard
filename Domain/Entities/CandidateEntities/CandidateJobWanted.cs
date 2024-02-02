@@ -18,8 +18,6 @@ namespace Domain.Entities.CandidateEntities
         [Required]
         public int ExpectedWage { get; set; }
         public int? MinimumWage { get; set; }
-        [Required]
-        [ForeignKey("Id")]
         public virtual Candidate Candidate { get; set; }
     }
 }

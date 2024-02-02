@@ -2,12 +2,13 @@
 
 namespace Domain.Entities
 {
-    public class Employer : ApplicationUser
+    public class Employer
     {
-        [Required]
-        public string CompanyName { get; set; }
+        [Key]
+        public string Id { get; set; }
+        public string? CompanyName { get; set; }
         public string? CompanyLogo { get; set; }
         public string? CompanyDescription { get; set; }
-        public ImportantSites ImportantSites { get; set; }
+        public ICollection<ImportantSites>? ImportantSites { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities.CandidateEntities
@@ -15,8 +16,6 @@ namespace Domain.Entities.CandidateEntities
         [Required]
         public string Role { get; set; }
         public string? Description { get; set; }
-        [Required]
-        [ForeignKey("Id")]
         public virtual Candidate Candidate { get; set; }
     }
 }
