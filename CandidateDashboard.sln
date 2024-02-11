@@ -5,9 +5,9 @@ VisualStudioVersion = 17.8.34511.84
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Domain", "Domain\Domain.csproj", "{758A71EF-D0D9-402A-8511-FE34010F060F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Presistance", "Presistance\Presistance.csproj", "{A700549B-79BC-4C5F-8DAD-7ED5256D3C6A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Presistence", "Presistance\Presistence.csproj", "{A700549B-79BC-4C5F-8DAD-7ED5256D3C6A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CandidateDashboardApi", "CandidateDashboardApi\CandidateDashboardApi.csproj", "{65402580-3380-42E6-A886-94F2B5E7DB43}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CandidateDashboardApi", "CandidateDashboardApi\CandidateDashboardApi.csproj", "{65402580-3380-42E6-A886-94F2B5E7DB43}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

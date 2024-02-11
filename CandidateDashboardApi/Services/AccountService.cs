@@ -2,7 +2,11 @@
 using Domain.Entities;
 using Domain.Entities.CandidateEntities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
 using Presistance;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace CandidateDashboardApi.Services
 {
@@ -25,6 +29,7 @@ namespace CandidateDashboardApi.Services
             {
                 UserName = login,
                 Email = registrationEmail,
+                ContactEmail = registrationEmail,
                 Name = name,
                 LastName = lastName,
             };
