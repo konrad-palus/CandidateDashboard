@@ -35,8 +35,8 @@ namespace CandidateDashboardApi.Controllers
         {
             try
             {
-                var isSuccess = await _accountService.LoginUserAsync(login, password);
-                return Ok(new { IsSuccess = isSuccess });
+                var token = await _accountService.LoginUserAsync(login, password);
+                return Ok(new { Token = token });
             }
             catch (Exception ex)
             {

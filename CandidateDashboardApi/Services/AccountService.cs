@@ -15,12 +15,17 @@ namespace CandidateDashboardApi.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly CandidateDashboardContext _candidateDashboardContext;
-
-        public AccountService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, CandidateDashboardContext context)
+        private readonly IConfiguration _configuration;
+        public AccountService(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            CandidateDashboardContext context,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _candidateDashboardContext = context;
+            _configuration = configuration;
         }
 
         public async Task<string> RegisterUserAsync(string login, string registrationEmail, string password, bool isCandidate, string? name, string? lastName)
@@ -54,7 +59,43 @@ namespace CandidateDashboardApi.Services
             return user.Id;
         }
 
-        public async Task<bool> LoginUserAsync(string login, string password)
+        public async Task<string> GenerateJwtTokenAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            var userClaims = await _userManager.GetClaimsAsync(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            var roleClaims = roles.Select(r => new Claim(ClaimTypes.Role, r)).ToList();
+
+            var claims = new List<Claim>
+            {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            }
+            .Union(userClaims)
+            .Union(roleClaims);
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var expires = DateTime.Now.AddHours(2);
+
+            var token = new JwtSecurityToken(
+                _configuration["Jwt:Issuer"],
+                _configuration["Jwt:Audience"],
+                claims,
+                expires: expires,
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public async Task<string> LoginUserAsync(string login, string password)
         {
             var result = await _signInManager.PasswordSignInAsync(login, password, isPersistent: true, lockoutOnFailure: false);
             if (!result.Succeeded)
@@ -62,7 +103,7 @@ namespace CandidateDashboardApi.Services
                 throw new Exception("login failed");
             }
 
-            return true;
+            return await GenerateJwtTokenAsync(login);
         }
     }
 }
