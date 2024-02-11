@@ -16,11 +16,11 @@ namespace CandidateDashboardApi.Controllers
 
         [HttpPost]
         [Route("Register")]
-        public async Task<IActionResult> Registration(string login, string registrationEmail, string password, bool isCandidate, string? name, string? lastName)
+        public async Task<IActionResult> Registration([FromBody] RegistrationModel model)
         {
             try
             {
-                var userId = await _accountService.RegisterUserAsync(login, registrationEmail, password, isCandidate, name, lastName);
+                var userId = await _accountService.RegisterUserAsync(model.Login, model.RegistrationEmail, model.Password, model.IsCandidate, model.Name, model.LastName);
                 return Ok(new { UserId = userId });
             }
             catch (Exception ex)
