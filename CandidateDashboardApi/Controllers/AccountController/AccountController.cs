@@ -1,4 +1,6 @@
-﻿using CandidateDashboardApi.Services;
+﻿using CandidateDashboardApi.Models;
+using CandidateDashboardApi.Services;
+using Microsoft.AspNetCore.Identity.UI.V4.Pages.Account.Internal;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CandidateDashboardApi.Controllers
@@ -31,11 +33,11 @@ namespace CandidateDashboardApi.Controllers
 
         [HttpPost]
         [Route("Login")]
-        public async Task<IActionResult> Login(string login, string password)
+        public async Task<IActionResult> Login([FromBody] SignInModel model)
         {
             try
             {
-                var token = await _accountService.LoginUserAsync(login, password);
+                var token = await _accountService.LoginUserAsync(model.Login, model.Password);
                 return Ok(new { Token = token });
             }
             catch (Exception ex)
