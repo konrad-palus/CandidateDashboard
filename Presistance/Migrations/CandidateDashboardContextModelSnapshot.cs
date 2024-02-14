@@ -8,7 +8,7 @@ using Presistance;
 
 #nullable disable
 
-namespace Presistance.Migrations
+namespace Presistence.Migrations
 {
     [DbContext(typeof(CandidateDashboardContext))]
     partial class CandidateDashboardContextModelSnapshot : ModelSnapshot
@@ -41,7 +41,6 @@ namespace Presistance.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ContactEmail")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Country")

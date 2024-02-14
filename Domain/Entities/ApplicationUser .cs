@@ -10,7 +10,6 @@ namespace Domain.Entities
         public string? Name { get; set; }
         [Required]
         public string? LastName { get; set; }
-        [Required]
         public string? ContactEmail { get; set; }
         public int? PhoneNumber { get; set; }
         public string? City { get; set; }

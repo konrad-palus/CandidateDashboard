@@ -9,10 +9,10 @@ using Presistance;
 
 #nullable disable
 
-namespace Presistance.Migrations
+namespace Presistence.Migrations
 {
     [DbContext(typeof(CandidateDashboardContext))]
-    [Migration("20240211200058_Initial")]
+    [Migration("20240212175900_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -44,7 +44,6 @@ namespace Presistance.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ContactEmail")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Country")

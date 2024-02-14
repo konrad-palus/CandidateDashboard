@@ -68,18 +68,15 @@ namespace CandidateDashboardApi.Services
             }
 
             var userClaims = await _userManager.GetClaimsAsync(user);
-            var roles = await _userManager.GetRolesAsync(user);
-            var roleClaims = roles.Select(r => new Claim(ClaimTypes.Role, r)).ToList();
 
             var claims = new List<Claim>
             {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
+                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                 new Claim(ClaimTypes.NameIdentifier, user.Id),
             }
-            .Union(userClaims)
-            .Union(roleClaims);
-
+            .Union(userClaims);
+            var st = _configuration["Jwt:Key"];
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expires = DateTime.Now.AddHours(2);
@@ -97,13 +94,22 @@ namespace CandidateDashboardApi.Services
 
         public async Task<string> LoginUserAsync(string login, string password)
         {
-            var result = await _signInManager.PasswordSignInAsync(login, password, isPersistent: true, lockoutOnFailure: false);
-            if (!result.Succeeded)
+            var user = await _userManager.FindByNameAsync(login);
+
+            if (user == null)
             {
-                throw new Exception("login failed");
+                throw new Exception("User not found");
             }
 
-            return await GenerateJwtTokenAsync(login);
+            var result = await _signInManager.PasswordSignInAsync(user.UserName, password, isPersistent: true, lockoutOnFailure: false);
+
+            if (!result.Succeeded)
+            {
+                throw new Exception("Login failed");
+            }
+
+            return await GenerateJwtTokenAsync(user.Email);
+
         }
     }
 }

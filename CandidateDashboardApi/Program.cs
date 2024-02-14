@@ -4,7 +4,8 @@ using CandidateDashboardApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Presistance; 
+using Presistance;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,8 +16,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<CandidateDashboardContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
 
-builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
     .AddEntityFrameworkStores<CandidateDashboardContext>();
+
 
 builder.Services.AddCors(options =>
 {

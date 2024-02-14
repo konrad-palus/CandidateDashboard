@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Presistance.Migrations
+namespace Presistence.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration
@@ -165,7 +165,7 @@ namespace Presistance.Migrations
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ContactEmail = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ContactEmail = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PhoneNumber = table.Column<int>(type: "int", nullable: true),
                     City = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Country = table.Column<string>(type: "nvarchar(max)", nullable: true),
