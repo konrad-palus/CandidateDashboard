@@ -4,6 +4,7 @@ using Domain.Entities.CandidateEntities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Presistance;
+using System.Data.Entity;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -76,7 +77,6 @@ namespace CandidateDashboardApi.Services
                  new Claim(ClaimTypes.NameIdentifier, user.Id),
             }
             .Union(userClaims);
-            var st = _configuration["Jwt:Key"];
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expires = DateTime.Now.AddHours(2);
@@ -110,6 +110,51 @@ namespace CandidateDashboardApi.Services
 
             return await GenerateJwtTokenAsync(user.Email);
 
+        }
+
+        public async Task<object> GetUserDataAsync(ClaimsPrincipal userClaims) 
+        {
+            var userId = userClaims.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
+
+            var candidate = await _candidateDashboardContext.Candidates
+                .Include(c => c.CandidateEducations)
+                .Include(c => c.CandidateExperience)
+                .Include(c => c.CandidateSkills)
+                .Include(c => c.ImportantSites)
+                .Include(c => c.CandidateJobWanted)
+                .FirstOrDefaultAsync(c => c.Id == userId);
+
+            if (candidate != null)
+            {
+                return new
+                {
+                    Id = candidate.Id,
+                    About = candidate.About,
+                    Educations = candidate.CandidateEducations,
+                    Experiences = candidate.CandidateExperience,
+                    Skills = candidate.CandidateSkills,
+                    Sites = candidate.ImportantSites,
+                    JobsWanted = candidate.CandidateJobWanted
+                };
+            }
+
+            var employer = await _candidateDashboardContext.Employers
+                .Include(e => e.ImportantSites)
+                .FirstOrDefaultAsync(e => e.Id == userId);
+
+            if (employer != null)
+            {
+                return new
+                {
+                    Id = employer.Id,
+                    CompanyName = employer.CompanyName,
+                    CompanyLogo = employer.CompanyLogo,
+                    CompanyDescription = employer.CompanyDescription,
+                    Sites = employer.ImportantSites
+                };
+            }
+
+            throw new Exception("Something went wrong  GetUserDataAsync");
         }
     }
 }
