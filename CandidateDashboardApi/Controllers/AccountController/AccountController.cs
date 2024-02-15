@@ -1,5 +1,6 @@
 ﻿using CandidateDashboardApi.Models;
 using CandidateDashboardApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.UI.V4.Pages.Account.Internal;
 using Microsoft.AspNetCore.Mvc;
 
@@ -39,6 +40,21 @@ namespace CandidateDashboardApi.Controllers
             {
                 var token = await _accountService.LoginUserAsync(model.Login, model.Password);
                 return Ok(new { Token = token });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpGet("GetUserData")]
+        public async Task<IActionResult> GetUserData()
+        {
+            try
+            {
+                var userData = await _accountService.GetUserDataAsync(User);
+                return Ok(userData);
             }
             catch (Exception ex)
             {
