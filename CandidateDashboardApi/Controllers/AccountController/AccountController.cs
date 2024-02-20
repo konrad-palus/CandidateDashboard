@@ -1,7 +1,6 @@
 ﻿using CandidateDashboardApi.Models;
 using CandidateDashboardApi.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity.UI.V4.Pages.Account.Internal;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CandidateDashboardApi.Controllers
@@ -60,6 +59,14 @@ namespace CandidateDashboardApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpGet]
+        [Route("ConfirmEmail")]
+        public async Task<IActionResult> ConfirmEmail(string email, string token)
+        {
+            var result = await _accountService.ConfirmUserEmailAsync(email, token);
+            return result ? Ok("Email confirmed successfully.") : BadRequest("Failed to confirm email.");
         }
     }
 }

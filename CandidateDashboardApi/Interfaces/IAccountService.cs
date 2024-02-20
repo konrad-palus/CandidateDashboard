@@ -8,5 +8,6 @@ namespace CandidateDashboardApi.Interfaces
         public Task<string> LoginUserAsync(string login, string password);
         public Task<string> GenerateJwtTokenAsync(string email);
         public Task<object> GetUserDataAsync(ClaimsPrincipal userClaims);
+        public Task<bool> ConfirmUserEmailAsync(string email, string token);
     }
 }

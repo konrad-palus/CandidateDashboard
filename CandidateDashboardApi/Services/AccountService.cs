@@ -2,12 +2,18 @@
 using Domain.Entities;
 using Domain.Entities.CandidateEntities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.Tokens;
 using Presistance;
 using System.Data.Entity;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Encodings.Web;
+using WebApi.Services.Interfaces;
 
 namespace CandidateDashboardApi.Services
 {
@@ -17,16 +23,27 @@ namespace CandidateDashboardApi.Services
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly CandidateDashboardContext _candidateDashboardContext;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
+        private readonly IUrlHelper _urlHelper;
+        private readonly IActionContextAccessor _actionContextAccessor;
+
+
         public AccountService(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             CandidateDashboardContext context,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IEmailService emailService,
+            IUrlHelperFactory factory,
+            IActionContextAccessor actionContextAccessor)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _candidateDashboardContext = context;
             _configuration = configuration;
+            _emailService = emailService;
+            _urlHelper = factory.GetUrlHelper(actionContextAccessor.ActionContext);
+            _actionContextAccessor = actionContextAccessor;
         }
 
         public async Task<string> RegisterUserAsync(string login, string registrationEmail, string password, bool isCandidate, string? name, string? lastName)
@@ -43,7 +60,7 @@ namespace CandidateDashboardApi.Services
             var result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
             {
-                throw new Exception("registration failed");
+                throw new Exception("Registration failed");
             }
 
             if (isCandidate)
@@ -56,6 +73,16 @@ namespace CandidateDashboardApi.Services
             }
 
             await _candidateDashboardContext.SaveChangesAsync();
+
+            var token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await _userManager.GenerateEmailConfirmationTokenAsync(user)));
+
+            var callbackUrl = _urlHelper.ActionLink(
+                "ConfirmEmail", "Account",
+                values: new { email = user.Email, token = token },
+                protocol: _actionContextAccessor.ActionContext.HttpContext.Request.Scheme);
+
+            await _emailService.SendEmailAsync(registrationEmail, "Confirm your email",
+                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
 
             return user.Id;
         }
@@ -112,6 +139,25 @@ namespace CandidateDashboardApi.Services
 
         }
 
+        public async Task<bool> ConfirmUserEmailAsync(string email, string token)
+        {
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+            {
+                return false;
+            }
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                throw new InvalidOperationException("user was null");
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(user, Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token)));
+            return result.Succeeded;
+        }
+
+
         public async Task<object> GetUserDataAsync(ClaimsPrincipal userClaims) 
         {
             var userId = userClaims.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
@@ -156,5 +202,7 @@ namespace CandidateDashboardApi.Services
 
             throw new Exception("Something went wrong  GetUserDataAsync");
         }
+
+       
     }
 }
