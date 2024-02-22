@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Presistance;
-using System.Data.Entity;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -66,10 +66,13 @@ namespace CandidateDashboardApi.Services
             if (isCandidate)
             {
                 _candidateDashboardContext.Candidates.Add(new Candidate { Id = user.Id });
+                await _userManager.AddToRoleAsync(user, nameof(Candidate));
+
             }
             else
             {
                 _candidateDashboardContext.Employers.Add(new Employer { Id = user.Id });
+                await _userManager.AddToRoleAsync(user, nameof(Employer));
             }
 
             await _candidateDashboardContext.SaveChangesAsync();
@@ -78,7 +81,7 @@ namespace CandidateDashboardApi.Services
 
             var callbackUrl = _urlHelper.ActionLink(
                 "ConfirmEmail", "Account",
-                values: new { email = user.Email, token = token },
+                values: new { email = user.Email, token },
                 protocol: _actionContextAccessor.ActionContext.HttpContext.Request.Scheme);
 
             await _emailService.SendEmailAsync(registrationEmail, "Confirm your email",

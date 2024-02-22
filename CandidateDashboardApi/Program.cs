@@ -7,6 +7,9 @@ using System.Text;
 using Presistance;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using WebApi.Services.Interfaces;
+using Domain.Entities.CandidateEntities;
+using System.Data;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +24,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<CandidateDashboardContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
 
-builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<CandidateDashboardContext>();
 
 
@@ -78,11 +82,18 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+
+
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var dbContext = services.GetRequiredService<CandidateDashboardContext>();
-    dbContext.Database.EnsureCreated();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    foreach (var role in new List<string> { nameof(Candidate), nameof(Employer) })
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
 }
 
 app.Run();

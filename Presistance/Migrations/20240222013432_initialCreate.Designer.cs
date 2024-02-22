@@ -12,8 +12,8 @@ using Presistance;
 namespace Presistence.Migrations
 {
     [DbContext(typeof(CandidateDashboardContext))]
-    [Migration("20240212175900_Initial")]
-    partial class Initial
+    [Migration("20240222013432_initialCreate")]
+    partial class initialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -60,7 +60,6 @@ namespace Presistence.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("LockoutEnabled")
@@ -70,7 +69,6 @@ namespace Presistence.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NormalizedEmail")
