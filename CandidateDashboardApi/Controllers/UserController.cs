@@ -26,9 +26,9 @@ namespace CandidateDashboardApi.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadPhoto([FromForm] IFormFile photo)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userEmail = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var photoUrl = await _blobService.UploadPhotoAsync(photo, userId);
+            var photoUrl = await _blobService.UploadPhotoAsync(photo, userEmail);
 
             return Ok(new { photoUrl });
         }
@@ -37,7 +37,7 @@ namespace CandidateDashboardApi.Controllers
         [HttpGet("get-photo")]
         public async Task<IActionResult> GetUserPhoto()
         {
-            var userEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var userEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userEmail))
             {
                 return Unauthorized("User is not authenticated.");

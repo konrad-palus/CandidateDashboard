@@ -1,6 +1,8 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using CandidateDashboardApi.Interfaces;
+using Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Presistance;
 
@@ -9,20 +11,25 @@ public class BlobService : IBlobService
     private readonly BlobServiceClient _blobServiceClient;
     private readonly string _containerName = "profilephoto";
     private readonly CandidateDashboardContext _candidateDashboardContext;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public BlobService(IConfiguration configuration, CandidateDashboardContext candidateDashboardContext)
+    public BlobService(
+        IConfiguration configuration,
+        CandidateDashboardContext candidateDashboardContext,
+        UserManager<ApplicationUser> userManager)
     {
         var connectionString = configuration.GetConnectionString("AzureBlobStorage");
         _blobServiceClient = new BlobServiceClient(connectionString);
         _candidateDashboardContext = candidateDashboardContext;
+        _userManager = userManager;
     }
 
-    public async Task<string> UploadPhotoAsync(IFormFile photo, string userId)
+    public async Task<string> UploadPhotoAsync(IFormFile photo, string userEmail)
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
         await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
 
-        string fileName = GetUniqueFileName(userId, photo.FileName);
+        string fileName = GetUniqueFileName(userEmail, photo.FileName);
         var blobClient = containerClient.GetBlobClient(fileName);
 
         if (await blobClient.ExistsAsync())
@@ -36,8 +43,8 @@ public class BlobService : IBlobService
         }
 
         var photoUrl = blobClient.Uri.ToString();
-
-        var user = await _candidateDashboardContext.Users.SingleOrDefaultAsync(u => u.Id == userId);
+        
+        var user = await _userManager.FindByEmailAsync(userEmail);
         if (user != null)
         {
             user.PhotoUrl = photoUrl;

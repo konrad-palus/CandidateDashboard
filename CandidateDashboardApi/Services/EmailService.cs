@@ -12,6 +12,7 @@ namespace CandidateDashboardApi.Services
             _configuration = configuration;
         }
 
+
         public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
             var message = new MimeMessage();
