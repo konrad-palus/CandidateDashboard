@@ -213,7 +213,15 @@ namespace CandidateDashboardApi.Services
 
             throw new Exception("Something went wrong  GetUserDataAsync");
         }
+        public async Task<string> GetUserPhotoUrlAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
 
-       
+            return user.PhotoUrl;
+        }
     }
 }

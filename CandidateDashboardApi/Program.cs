@@ -1,15 +1,18 @@
-using Domain.Entities;
-using Microsoft.EntityFrameworkCore;
+using CandidateDashboardApi.Interfaces;
 using CandidateDashboardApi.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Presistance;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using WebApi.Services.Interfaces;
+using Domain.Entities;
 using Domain.Entities.CandidateEntities;
-using System.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Presistance;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Text;
+using WebApi.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +22,11 @@ builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+    c.OperationFilter<FileUploadOperationFilter>(); // Dodaj tê liniê
+});
 
 builder.Services.AddDbContext<CandidateDashboardContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
@@ -41,6 +48,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<IBlobService, BlobService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -58,8 +66,8 @@ builder.Services.AddAuthentication(options =>
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"], 
-            ValidAudience = builder.Configuration["Jwt:Audience"], 
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
     });
@@ -77,7 +85,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AngularCandidateDashboardFront");
 
-app.UseAuthentication(); 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -97,3 +105,37 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+public class FileUploadOperationFilter : IOperationFilter
+{
+    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    {
+        var hasFileUpload = context.MethodInfo.GetCustomAttributes(typeof(ConsumesAttribute), false)
+                            .Any(a => ((ConsumesAttribute)a).ContentTypes.Contains("multipart/form-data"));
+
+        if (hasFileUpload)
+        {
+            operation.RequestBody = new OpenApiRequestBody
+            {
+                Content = {
+                    ["multipart/form-data"] = new OpenApiMediaType
+                    {
+                        Schema = new OpenApiSchema
+                        {
+                            Type = "object",
+                            Properties = {
+                                ["photo"] = new OpenApiSchema
+                                {
+                                    Description = "Upload File",
+                                    Type = "string",
+                                    Format = "binary"
+                                }
+                            },
+                            Required = new HashSet<string> { "photo" }
+                        }
+                    }
+                }
+            };
+        }
+    }
+}
