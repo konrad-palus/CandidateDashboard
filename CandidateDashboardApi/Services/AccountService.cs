@@ -46,24 +46,24 @@ namespace CandidateDashboardApi.Services
             _actionContextAccessor = actionContextAccessor;
         }
 
-        public async Task<string> RegisterUserAsync(string login, string registrationEmail, string password, bool isCandidate, string? name, string? lastName)
+        public async Task<string> RegisterUserAsync(RegistrationModel model)
         {
             var user = new ApplicationUser
             {
-                UserName = login,
-                Email = registrationEmail,
-                ContactEmail = registrationEmail,
-                Name = name,
-                LastName = lastName,
+                UserName = model.Login,
+                Email = model.RegistrationEmail,
+                ContactEmail = model.RegistrationEmail,
+                Name = model.Name,
+                LastName = model.LastName,
             };
 
-            var result = await _userManager.CreateAsync(user, password);
+            var result = await _userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
             {
                 throw new Exception("Registration failed");
             }
 
-            if (isCandidate)
+            if (model.IsCandidate)
             {
                 _candidateDashboardContext.Candidates.Add(new Candidate { Id = user.Id });
                 await _userManager.AddToRoleAsync(user, nameof(Candidate));
@@ -84,7 +84,7 @@ namespace CandidateDashboardApi.Services
                 values: new { email = user.Email, token },
                 protocol: _actionContextAccessor.ActionContext.HttpContext.Request.Scheme);
 
-            await _emailService.SendEmailAsync(registrationEmail, "Confirm your email",
+            await _emailService.SendEmailAsync(model.RegistrationEmail, "Confirm your email",
                 $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
 
             return user.Id;
@@ -185,8 +185,8 @@ namespace CandidateDashboardApi.Services
             {
                 return new
                 {
-                    Id = candidate.Id,
-                    About = candidate.About,
+                    candidate.Id,
+                    candidate.About,
                     Educations = candidate.CandidateEducations,
                     Experiences = candidate.CandidateExperience,
                     Skills = candidate.CandidateSkills,
@@ -203,10 +203,10 @@ namespace CandidateDashboardApi.Services
             {
                 return new
                 {
-                    Id = employer.Id,
-                    CompanyName = employer.CompanyName,
-                    CompanyLogo = employer.CompanyLogo,
-                    CompanyDescription = employer.CompanyDescription,
+                    employer.Id,
+                    employer.CompanyName,
+                    employer.CompanyLogo,
+                    employer.CompanyDescription,
                     Sites = employer.ImportantSites
                 };
             }

@@ -1,4 +1,5 @@
 ﻿using CandidateDashboardApi.Models;
+using CandidateDashboardApi.Models.ResponseModels;
 using CandidateDashboardApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,12 +23,12 @@ namespace CandidateDashboardApi.Controllers
         {
             try
             {
-                var userId = await _accountService.RegisterUserAsync(model.Login, model.RegistrationEmail, model.Password, model.IsCandidate, model.Name, model.LastName);
-                return Ok(new { UserId = userId });
+                var userId = await _accountService.RegisterUserAsync(model);
+                return Ok(new RegistrationResponse { UserId = userId, Message = "Registration successful." });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new RegistrationResponse { Message = $"Registration failed. {ex.Message}" });
             }
         }
 
@@ -38,11 +39,11 @@ namespace CandidateDashboardApi.Controllers
             try
             {
                 var token = await _accountService.LoginUserAsync(model.Login, model.Password);
-                return Ok(new { Token = token });
+                return Ok(new LoginResponse { Token = token, Message = "Login successful." });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new LoginResponse { Message = $"Login failed. {ex.Message}" });
             }
         }
 
@@ -53,11 +54,11 @@ namespace CandidateDashboardApi.Controllers
             try
             {
                 var userData = await _accountService.GetUserDataAsync(User);
-                return Ok(userData);
+                return Ok(new GetUserDataResponse { UserData = userData, Message = "User data retrieval successful." });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new GetUserDataResponse { Message = $"Failed to retrieve user data. {ex.Message}" });
             }
         }
 
@@ -65,8 +66,15 @@ namespace CandidateDashboardApi.Controllers
         [Route("ConfirmEmail")]
         public async Task<IActionResult> ConfirmEmail(string email, string token)
         {
-            var result = await _accountService.ConfirmUserEmailAsync(email, token);
-            return result ? Ok("Email confirmed successfully.") : BadRequest("Failed to confirm email.");
+            try
+            {
+                var result = await _accountService.ConfirmUserEmailAsync(email, token);
+                return Ok(new ConfirmEmailResponse { Message = $"Email successfully confirmed. {result}" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ConfirmEmailResponse { Message = $"Failed to confirm email. {ex.Message}" });
+            }
         }
     }
 }

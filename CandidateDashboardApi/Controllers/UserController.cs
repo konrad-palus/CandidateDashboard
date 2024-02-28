@@ -2,7 +2,6 @@
 using CandidateDashboardApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Presistance;
 using System.Security.Claims;
 
 namespace CandidateDashboardApi.Controllers
@@ -22,13 +21,12 @@ namespace CandidateDashboardApi.Controllers
             _accountService = accountService;
         }
 
+        [Authorize]
         [HttpPost("upload-photo")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadPhoto([FromForm] IFormFile photo)
         {
-            var userEmail = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            var photoUrl = await _blobService.UploadPhotoAsync(photo, userEmail);
+            var photoUrl = await _blobService.UploadPhotoAsync(photo, User.FindFirstValue(ClaimTypes.NameIdentifier));
 
             return Ok(new { photoUrl });
         }
