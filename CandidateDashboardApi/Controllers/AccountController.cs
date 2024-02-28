@@ -1,5 +1,6 @@
-﻿using CandidateDashboardApi.Models;
+﻿using CandidateDashboardApi.Models.AccountServiceModels;
 using CandidateDashboardApi.Models.ResponseModels;
+using CandidateDashboardApi.Models.ResponseModels.AccountServiceResponses;
 using CandidateDashboardApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

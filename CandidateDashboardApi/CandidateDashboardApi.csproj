@@ -31,8 +31,4 @@
     <ProjectReference Include="..\Presistance\Presistence.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\RecruterController\" />
-  </ItemGroup>
-
 </Project>

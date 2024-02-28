@@ -7,7 +7,6 @@ namespace Domain.Entities
         [Key]
         public string Id { get; set; }
         public string? CompanyName { get; set; }
-        public string? CompanyLogo { get; set; }
         public string? CompanyDescription { get; set; }
         public ICollection<ImportantSites>? ImportantSites { get; set; }
     }

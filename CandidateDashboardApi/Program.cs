@@ -22,11 +22,7 @@ builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
-    c.OperationFilter<FileUploadOperationFilter>(); // Dodaj tê liniê
-});
+builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<CandidateDashboardContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
@@ -48,6 +44,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<EmployerService>();
 builder.Services.AddScoped<IBlobService, BlobService>();
 
 builder.Services.AddAuthentication(options =>
@@ -105,37 +102,3 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
-
-public class FileUploadOperationFilter : IOperationFilter
-{
-    public void Apply(OpenApiOperation operation, OperationFilterContext context)
-    {
-        var hasFileUpload = context.MethodInfo.GetCustomAttributes(typeof(ConsumesAttribute), false)
-                            .Any(a => ((ConsumesAttribute)a).ContentTypes.Contains("multipart/form-data"));
-
-        if (hasFileUpload)
-        {
-            operation.RequestBody = new OpenApiRequestBody
-            {
-                Content = {
-                    ["multipart/form-data"] = new OpenApiMediaType
-                    {
-                        Schema = new OpenApiSchema
-                        {
-                            Type = "object",
-                            Properties = {
-                                ["photo"] = new OpenApiSchema
-                                {
-                                    Description = "Upload File",
-                                    Type = "string",
-                                    Format = "binary"
-                                }
-                            },
-                            Required = new HashSet<string> { "photo" }
-                        }
-                    }
-                }
-            };
-        }
-    }
-}

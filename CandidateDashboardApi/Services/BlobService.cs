@@ -43,8 +43,8 @@ public class BlobService : IBlobService
         }
 
         var photoUrl = blobClient.Uri.ToString();
-        
         var user = await _userManager.FindByEmailAsync(userEmail);
+
         if (user != null)
         {
             user.PhotoUrl = photoUrl;
@@ -58,8 +58,11 @@ public class BlobService : IBlobService
     private string GetUniqueFileName(string userId, string fileName)
     {
         string fileExtension = Path.GetExtension(fileName);
+
         if (fileExtension != ".jpg" && fileExtension != ".png")
+        {
             throw new InvalidOperationException("Invalid file type.");
+        }
 
         return $"{userId}-{Guid.NewGuid()}{fileExtension}";
     }

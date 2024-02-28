@@ -1,4 +1,4 @@
-﻿namespace CandidateDashboardApi.Models.ResponseModels
+﻿namespace CandidateDashboardApi.Models.ResponseModels.AccountServiceResponses
 {
     public class ConfirmEmailResponse
     {

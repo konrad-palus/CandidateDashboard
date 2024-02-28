@@ -205,7 +205,6 @@ namespace CandidateDashboardApi.Services
                 {
                     employer.Id,
                     employer.CompanyName,
-                    employer.CompanyLogo,
                     employer.CompanyDescription,
                     Sites = employer.ImportantSites
                 };

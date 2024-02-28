@@ -1,4 +1,4 @@
-﻿namespace CandidateDashboardApi.Models
+﻿namespace CandidateDashboardApi.Models.AccountServiceModels
 {
     public class SignInModel
     {
