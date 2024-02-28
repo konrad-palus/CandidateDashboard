@@ -1,5 +1,4 @@
-﻿using CandidateDashboardApi.Interfaces;
-using CandidateDashboardApi.Models;
+﻿using CandidateDashboardApi.Models;
 using CandidateDashboardApi.Models.EmployerServiceModels;
 using CandidateDashboardApi.Models.ResponseModels.EmployerServiceResponses;
 using CandidateDashboardApi.Services;
@@ -27,7 +26,7 @@ namespace CandidateDashboardApi.Controllers
         {
             try
             {
-                var userEmail = User.FindFirstValue(ClaimTypes.NameIdentifier); 
+                var userEmail = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 var result = await _employerService.UpdateOrCreateCompanyNameAsync(userEmail, model.CompanyName);
                 return Ok(new UpdateCompanyNameResponseModel { CompanyName = result, Message = "Company name updated successfully." });
             }
@@ -43,7 +42,7 @@ namespace CandidateDashboardApi.Controllers
         {
             try
             {
-                var userEmail = User.FindFirstValue(ClaimTypes.NameIdentifier); 
+                var userEmail = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 var result = await _employerService.UpdateOrCreateCompanyDescriptionAsync(userEmail, model.CompanyDescription);
                 return Ok(new UpdateCompanyDescriptionResponseModel { CompanyDescription = result, Message = "Company description updated successfully." });
             }
@@ -61,7 +60,7 @@ namespace CandidateDashboardApi.Controllers
             {
                 var userEmail = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 var companyName = await _employerService.GetCompanyNameAsync(userEmail);
-                return Ok(new { CompanyName = companyName });
+                return Ok(new GetCompanyNameResponseModel { CompanyName = companyName });
             }
             catch (Exception ex)
             {
@@ -77,7 +76,7 @@ namespace CandidateDashboardApi.Controllers
             {
                 var userEmail = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 var companyDescription = await _employerService.GetCompanyDescriptionAsync(userEmail);
-                return Ok(new { CompanyDescription = companyDescription });
+                return Ok(new GetCompanyDescriptionRespnseModel { CompanyDescription = companyDescription });
             }
             catch (Exception ex)
             {
