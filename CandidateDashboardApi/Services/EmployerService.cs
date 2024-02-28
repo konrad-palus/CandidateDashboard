@@ -16,7 +16,7 @@ namespace CandidateDashboardApi.Services
             _userManager = userManager;
             _candidateDashboardContext = candidateDashboardContext;
         }
-        public async Task<string> UpdateOrCreateCompanyName(string userEmail, string companyName)
+        public async Task<string> UpdateOrCreateCompanyNameAsync(string userEmail, string companyName)
         {
             var user = await _userManager.FindByEmailAsync(userEmail);
             if (user == null)
@@ -38,10 +38,10 @@ namespace CandidateDashboardApi.Services
 
             await _candidateDashboardContext.SaveChangesAsync();
 
-            return $"CompanyName updated to {companyName}";
+            return companyName;
         }
 
-        public async Task<string> UpdateOrCreateCompanyDescription(string userEmail, string companyDescription)
+        public async Task<string> UpdateOrCreateCompanyDescriptionAsync(string userEmail, string companyDescription)
         {
             var user = await _userManager.FindByEmailAsync(userEmail);
             if (user == null)
@@ -62,7 +62,33 @@ namespace CandidateDashboardApi.Services
 
             await _candidateDashboardContext.SaveChangesAsync();
 
-            return $"CompanyDescription updated to {companyDescription}";
+            return companyDescription;
+        }
+
+        public async Task<string> GetCompanyNameAsync(string userEmail)
+        {
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            if (user == null)
+            {
+                throw new Exception("User not found");
+            }
+
+            var employer = await _candidateDashboardContext.Employers.FirstOrDefaultAsync(e => e.Id == user.Id);
+
+            return employer.CompanyName ?? "Company name not set";
+        }
+
+        public async Task<string> GetCompanyDescriptionAsync(string userEmail)
+        {
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            if (user == null)
+            {
+                throw new Exception("User not found");
+            }
+
+            var employer = await _candidateDashboardContext.Employers.FirstOrDefaultAsync(e => e.Id == user.Id);
+
+            return employer.CompanyDescription ?? "Company description not set";
         }
     }
 }

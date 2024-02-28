@@ -2,7 +2,9 @@
 {
     public interface IEmployerService
     {
-        Task<string> UpdateOrCreateCompanyName(string userEmail, string companyName);
-        Task<string> UpdateOrCreateCompanyDescription(string userEmail, string companyDescription);
+        Task<string> UpdateOrCreateCompanyNameAsync(string userEmail, string companyName);
+        Task<string> UpdateOrCreateCompanyDescriptionAsync(string userEmail, string companyDescription);
+        Task<string> GetCompanyNameAsync(string userEmail);
+        Task<string> GetCompanyDescriptionAsync(string userEmail);
     }
 }
