@@ -2,9 +2,14 @@
 using Azure.Storage.Blobs.Models;
 using CandidateDashboardApi.Interfaces;
 using Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Presistance;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 public class BlobService : IBlobService
 {
@@ -12,47 +17,62 @@ public class BlobService : IBlobService
     private readonly string _containerName = "profilephoto";
     private readonly CandidateDashboardContext _candidateDashboardContext;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<BlobService> _logger;
 
     public BlobService(
         IConfiguration configuration,
         CandidateDashboardContext candidateDashboardContext,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ILogger<BlobService> logger) 
     {
         var connectionString = configuration.GetConnectionString("AzureBlobStorage");
         _blobServiceClient = new BlobServiceClient(connectionString);
         _candidateDashboardContext = candidateDashboardContext;
         _userManager = userManager;
+        _logger = logger;
     }
 
     public async Task<string> UploadPhotoAsync(IFormFile photo, string userEmail)
     {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
-        await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+        _logger.LogInformation("Uploading photo for user: {UserEmail}", userEmail); 
 
-        string fileName = GetUniqueFileName(userEmail, photo.FileName);
-        var blobClient = containerClient.GetBlobClient(fileName);
-
-        if (await blobClient.ExistsAsync())
+        try
         {
-            await blobClient.DeleteAsync();
-        }
+            var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+            await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
 
-        using (var stream = photo.OpenReadStream())
+            string fileName = GetUniqueFileName(userEmail, photo.FileName);
+            var blobClient = containerClient.GetBlobClient(fileName);
+
+            if (await blobClient.ExistsAsync())
+            {
+                await blobClient.DeleteAsync();
+            }
+
+            using (var stream = photo.OpenReadStream())
+            {
+                await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = photo.ContentType });
+            }
+
+            var photoUrl = blobClient.Uri.ToString();
+            var user = await _userManager.FindByEmailAsync(userEmail);
+
+            if (user != null)
+            {
+                user.PhotoUrl = photoUrl;
+                _candidateDashboardContext.Users.Update(user);
+                await _candidateDashboardContext.SaveChangesAsync();
+            }
+
+            _logger.LogInformation("Photo uploaded successfully for user: {UserEmail}", userEmail);
+
+            return photoUrl;
+        }
+        catch (Exception ex)
         {
-            await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = photo.ContentType });
+            _logger.LogError(ex, "Error uploading photo for user: {UserEmail}", userEmail);
+            throw;
         }
-
-        var photoUrl = blobClient.Uri.ToString();
-        var user = await _userManager.FindByEmailAsync(userEmail);
-
-        if (user != null)
-        {
-            user.PhotoUrl = photoUrl;
-            _candidateDashboardContext.Users.Update(user);
-            await _candidateDashboardContext.SaveChangesAsync();
-        }
-
-        return photoUrl;
     }
 
     private string GetUniqueFileName(string userId, string fileName)

@@ -1,17 +1,23 @@
 ﻿using MimeKit;
 using WebApi.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MailKit.Security;
+using System;
+using System.Threading.Tasks;
 
 namespace CandidateDashboardApi.Services
 {
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _configuration;
-        public EmailService(IConfiguration configuration)
+        private readonly ILogger<EmailService> _logger;
+
+        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
         {
             _configuration = configuration;
+            _logger = logger;
         }
-
 
         public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
@@ -26,18 +32,21 @@ namespace CandidateDashboardApi.Services
             };
             message.Body = builder.ToMessageBody();
 
-            using var smtpClient = new MailKit.Net.Smtp.SmtpClient();
-            try
+            using (var smtpClient = new MailKit.Net.Smtp.SmtpClient())
             {
-                await smtpClient.ConnectAsync(_configuration["Email:SmtpHost"], int.Parse(_configuration["Email:SmtpPort"]!), SecureSocketOptions.StartTls);
-                await smtpClient.AuthenticateAsync(_configuration["Email:From"], _configuration["Email:Password"]);
-                await smtpClient.SendAsync(message);
-                await smtpClient.DisconnectAsync(true, default);
+                try
+                {
+                    await smtpClient.ConnectAsync(_configuration["Email:SmtpHost"], int.Parse(_configuration["Email:SmtpPort"]!), SecureSocketOptions.StartTls);
+                    await smtpClient.AuthenticateAsync(_configuration["Email:From"], _configuration["Email:Password"]);
+                    await smtpClient.SendAsync(message);
+                    await smtpClient.DisconnectAsync(true, default);
 
-            }
-            catch (Exception ex)
-            {
-                Console.Write(ex.ToString());
+                    _logger.LogInformation("Email sent successfully to: {EmailAddress}", email);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error sending email to: {EmailAddress}", email);
+                }
             }
         }
     }

@@ -26,7 +26,7 @@ namespace CandidateDashboardApi.Services
         private readonly IEmailService _emailService;
         private readonly IUrlHelper _urlHelper;
         private readonly IActionContextAccessor _actionContextAccessor;
-
+        private readonly ILogger<AccountService> _logger;
 
         public AccountService(
             UserManager<ApplicationUser> userManager,
@@ -35,7 +35,8 @@ namespace CandidateDashboardApi.Services
             IConfiguration configuration,
             IEmailService emailService,
             IUrlHelperFactory factory,
-            IActionContextAccessor actionContextAccessor)
+            IActionContextAccessor actionContextAccessor,
+             ILogger<AccountService> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -44,10 +45,13 @@ namespace CandidateDashboardApi.Services
             _emailService = emailService;
             _urlHelper = factory.GetUrlHelper(actionContextAccessor.ActionContext);
             _actionContextAccessor = actionContextAccessor;
+            _logger = logger;
         }
 
         public async Task<string> RegisterUserAsync(RegistrationModel model)
         {
+            _logger.LogInformation("Someone's trying to register account, email: {Email}", model.RegistrationEmail);
+
             var user = new ApplicationUser
             {
                 UserName = model.Login,
@@ -60,17 +64,20 @@ namespace CandidateDashboardApi.Services
             var result = await _userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
             {
+                _logger.LogError("Registration failed: {Email}", model.RegistrationEmail);
                 throw new Exception("Registration failed");
             }
 
             if (model.IsCandidate)
             {
+                _logger.LogInformation("Registred Candidate: {Email}", model.RegistrationEmail);
                 _candidateDashboardContext.Candidates.Add(new Candidate { Id = user.Id });
                 await _userManager.AddToRoleAsync(user, nameof(Candidate));
 
             }
             else
             {
+                _logger.LogInformation("Registred Employer: {Email}", model.RegistrationEmail);
                 _candidateDashboardContext.Employers.Add(new Employer { Id = user.Id });
                 await _userManager.AddToRoleAsync(user, nameof(Employer));
             }
@@ -132,6 +139,7 @@ namespace CandidateDashboardApi.Services
 
         public async Task<string> LoginUserAsync(string login, string password)
         {
+            _logger.LogInformation("Login attempt: {Login}", login);
             var user = await _userManager.FindByNameAsync(login);
 
             if (user == null)
@@ -143,6 +151,7 @@ namespace CandidateDashboardApi.Services
 
             if (!result.Succeeded)
             {
+                _logger.LogError("Login failed: {Login}", login);
                 throw new Exception("Login failed");
             }
 
@@ -152,7 +161,7 @@ namespace CandidateDashboardApi.Services
 
         public async Task<bool> ConfirmUserEmailAsync(string email, string token)
         {
-
+            _logger.LogInformation("Attempting to confirm email for user: {Email}", email);
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
             {
                 return false;
@@ -161,10 +170,20 @@ namespace CandidateDashboardApi.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                throw new InvalidOperationException("user was null");
+                _logger.LogError("Email confirmation failed: user with email does not exist {Email}", email);
+                throw new InvalidOperationException("User was null");
             }
 
             var result = await _userManager.ConfirmEmailAsync(user, Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token)));
+            if (result.Succeeded)
+            {
+                _logger.LogInformation("Email successfully confirmed: {Email}", email);
+            }
+            else
+            {
+                _logger.LogError("Email confirmation failed: {Email}. Errors: {Errors}", email, string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+
             return result.Succeeded;
         }
 

@@ -4,18 +4,25 @@ using Domain.Entities;
 using Domain.Entities.CandidateEntities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using Presistance;
-using Swashbuckle.AspNetCore.SwaggerGen;
+using Serilog;
+using Serilog.Events;
 using System.Text;
 using WebApi.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var containerName = "profilephoto";
+var template = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}";
+string azureBlobStorageConnectionString = builder.Configuration.GetConnectionString("AzureBlobStorage");
+
+if (string.IsNullOrWhiteSpace(azureBlobStorageConnectionString))
+{
+    throw new InvalidOperationException("Azure Blob Storage connection string is not configured properly.");
+}
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
@@ -43,10 +50,19 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
+    loggerConfiguration
+        .ReadFrom.Configuration(hostingContext.Configuration)
+        .Enrich.FromLogContext());
+
+
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<EmployerService>();
 builder.Services.AddScoped<IBlobService, BlobService>();
-
+builder.Services.AddScoped<IOpenAIService, OpenAIService>(provider =>
+{
+    return new OpenAIService(builder.Configuration["OpenAI:ApiKey"]);
+});
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
