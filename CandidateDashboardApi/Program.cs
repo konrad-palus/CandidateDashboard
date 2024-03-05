@@ -1,3 +1,4 @@
+using Azure.Identity;
 using CandidateDashboardApi.Interfaces;
 using CandidateDashboardApi.Services;
 using Domain.Entities;
@@ -55,6 +56,16 @@ builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
         .ReadFrom.Configuration(hostingContext.Configuration)
         .Enrich.FromLogContext());
 
+// --- Potential Azure key Vault implementation --- // 
+/*builder.Configuration.AddAzureKeyVault(
+    new Uri(builder.Configuration["KeyVault:Uri"]),
+    new ClientSecretCredential(
+        builder.Configuration["AzureAd:DirectoryId"],
+        builder.Configuration["AzureAd:ApplicationId"],
+        builder.Configuration["AzureAd:ApplicationSecret"]));
+var emailPassword = builder.Configuration["EmailPassword"];
+var jwtKey = builder.Configuration["JwtKey"];
+var openApiKey = builder.Configuration["OpenAPI"];*/
 
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<EmployerService>();
