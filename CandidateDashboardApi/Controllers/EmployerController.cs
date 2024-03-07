@@ -1,4 +1,5 @@
-﻿using CandidateDashboardApi.Models;
+﻿using CandidateDashboardApi.Interfaces;
+using CandidateDashboardApi.Models;
 using CandidateDashboardApi.Models.EmployerServiceModels;
 using CandidateDashboardApi.Models.ResponseModels.EmployerServiceResponses;
 using CandidateDashboardApi.Services;
@@ -13,11 +14,14 @@ namespace CandidateDashboardApi.Controllers
     public class EmployerController : ControllerBase
     {
         private readonly EmployerService _employerService;
+        private readonly IOpenAIService _openAIService;
 
         public EmployerController(
-            EmployerService employerService)
+            EmployerService employerService,
+            IOpenAIService openAIService)
         {
             _employerService = employerService;
+            _openAIService = openAIService;
         }
 
         [Authorize]
@@ -83,5 +87,27 @@ namespace CandidateDashboardApi.Controllers
                 return BadRequest(new ErrorResponseModel { Message = $"Failed to get company description, {ex}" });
             }
         }
+
+        [Authorize]
+        [HttpPost("GenerateCompanyDescription")]
+        public async Task<IActionResult> GenerateAndUpdateCompanyDescription()
+        {
+            try
+            {
+                var userEmail = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var result = await _employerService.GenerateAndUpdateCompanyDescriptionAsync(userEmail);
+
+                return Ok(new GenerateCompanyDescriptionResponseModel {Messge = "Company description generated and updated successfully", CompanyDescription = result });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ErrorResponseModel { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ErrorResponseModel { Message = $"An error occurred while updating the company description: {ex.Message}" });
+            }
+        }
+
     }
 }

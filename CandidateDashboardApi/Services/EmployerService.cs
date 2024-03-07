@@ -11,15 +11,18 @@ namespace CandidateDashboardApi.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly CandidateDashboardContext _candidateDashboardContext;
         private readonly ILogger<EmployerService> _logger;
+        private readonly IOpenAIService _openAIService;
 
         public EmployerService(
             UserManager<ApplicationUser> userManager,
             CandidateDashboardContext candidateDashboardContext,
-            ILogger<EmployerService> logger)
+            ILogger<EmployerService> logger,
+            IOpenAIService openAIService)
         {
             _userManager = userManager;
             _candidateDashboardContext = candidateDashboardContext;
             _logger = logger;
+            _openAIService = openAIService;
         }
         public async Task<string> UpdateOrCreateCompanyNameAsync(string userEmail, string companyName)
         {
@@ -113,6 +116,35 @@ namespace CandidateDashboardApi.Services
             var employer = await _candidateDashboardContext.Employers.FirstOrDefaultAsync(e => e.Id == user.Id);
 
             return employer.CompanyDescription ?? "Company description not set";
+        }
+
+        public async Task<string> GenerateAndUpdateCompanyDescriptionAsync(string userEmail)
+        {
+            try
+            {
+                var companyName = await GetCompanyNameAsync(userEmail);
+                if (companyName == "Company name not set")
+                {
+                    _logger.LogWarning("Attempt to generate company description for user: {UserEmail} without a set company name", userEmail);
+                    throw new InvalidOperationException("Company name must be established before generating company description.");
+                }
+
+                var chatResponse = await _openAIService.GetChatResponseAsync(companyName);
+                if (chatResponse.Content == "No response received." || chatResponse.Content.Contains("An error occurred"))
+                {
+                    _logger.LogError("Failed to generate company description for {CompanyName}", companyName);
+                    throw new Exception("Failed to generate company description");
+                }
+
+                var updatedDescription = await UpdateOrCreateCompanyDescriptionAsync(userEmail, chatResponse.Content);
+                _logger.LogInformation("Company description generated and updated successfully for {CompanyName}.", companyName);
+                return updatedDescription;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating or updating company description for user: {UserEmail}", userEmail);
+                throw;
+            }
         }
     }
 }
