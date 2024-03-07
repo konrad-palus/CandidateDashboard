@@ -48,21 +48,6 @@ namespace CandidateDashboardApi.Controllers
             }
         }
 
-        [Authorize]
-        [HttpGet("GetUserData")]
-        public async Task<IActionResult> GetUserData()
-        {
-            try
-            {
-                var userData = await _accountService.GetUserDataAsync(User);
-                return Ok(new GetUserDataResponse { UserData = userData, Message = "User data retrieval successful." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new GetUserDataResponse { Message = $"Failed to retrieve user data. {ex.Message}" });
-            }
-        }
-
         [HttpGet]
         [Route("ConfirmEmail")]
         public async Task<IActionResult> ConfirmEmail(string email, string token)

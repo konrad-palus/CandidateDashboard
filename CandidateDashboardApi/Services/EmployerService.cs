@@ -122,7 +122,8 @@ namespace CandidateDashboardApi.Services
         {
             try
             {
-                var companyName = await GetCompanyNameAsync(userEmail);
+                var companyName = "Generate company description for company:" + await GetCompanyNameAsync(userEmail);
+
                 if (companyName == "Company name not set")
                 {
                     _logger.LogWarning("Attempt to generate company description for user: {UserEmail} without a set company name", userEmail);
@@ -130,6 +131,7 @@ namespace CandidateDashboardApi.Services
                 }
 
                 var chatResponse = await _openAIService.GetChatResponseAsync(companyName);
+
                 if (chatResponse.Content == "No response received." || chatResponse.Content.Contains("An error occurred"))
                 {
                     _logger.LogError("Failed to generate company description for {CompanyName}", companyName);

@@ -14,14 +14,11 @@ namespace CandidateDashboardApi.Controllers
     public class EmployerController : ControllerBase
     {
         private readonly EmployerService _employerService;
-        private readonly IOpenAIService _openAIService;
 
         public EmployerController(
-            EmployerService employerService,
-            IOpenAIService openAIService)
+            EmployerService employerService)
         {
             _employerService = employerService;
-            _openAIService = openAIService;
         }
 
         [Authorize]
@@ -89,7 +86,7 @@ namespace CandidateDashboardApi.Controllers
         }
 
         [Authorize]
-        [HttpPost("GenerateCompanyDescription")]
+        [HttpGet("GenerateAndUpdateCompanyDescription")]
         public async Task<IActionResult> GenerateAndUpdateCompanyDescription()
         {
             try

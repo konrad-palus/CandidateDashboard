@@ -1,4 +1,5 @@
 ﻿using CandidateDashboardApi.Interfaces;
+using CandidateDashboardApi.Models.ResponseModels.AccountServiceResponses;
 using CandidateDashboardApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,14 +12,14 @@ namespace CandidateDashboardApi.Controllers
     public class UserController : ControllerBase
     {
         private readonly IBlobService _blobService;
-        private readonly AccountService _accountService;
+        private readonly UserService _userService;
 
         public UserController(
             IBlobService blobService,
-            AccountService accountService)
+            UserService userService)
         {
             _blobService = blobService;
-            _accountService = accountService;
+            _userService = userService;
         }
 
         [Authorize]
@@ -41,13 +42,28 @@ namespace CandidateDashboardApi.Controllers
                 return Unauthorized("User is not authenticated.");
             }
 
-            var photoUrl = await _accountService.GetUserPhotoUrlAsync(userEmail);
+            var photoUrl = await _userService.GetUserPhotoUrlAsync(userEmail);
             if (string.IsNullOrEmpty(photoUrl))
             {
                 return NotFound(new { message = "Photo not found." });
             }
 
             return Ok(new { photoUrl });
+        }
+
+        [Authorize]
+        [HttpGet("GetUserData")]
+        public async Task<IActionResult> GetUserData()
+        {
+            try
+            {
+                var userData = await _userService.GetUserDataAsync(User);
+                return Ok(new GetUserDataResponse { UserData = userData, Message = "User data retrieval successful." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new GetUserDataResponse { Message = $"Failed to retrieve user data. {ex.Message}" });
+            }
         }
     }
 }

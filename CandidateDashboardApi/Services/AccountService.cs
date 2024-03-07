@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Presistance;
 using System.IdentityModel.Tokens.Jwt;
@@ -20,13 +19,13 @@ namespace CandidateDashboardApi.Services
     public class AccountService : IAccountService
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<AccountService> _logger;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly CandidateDashboardContext _candidateDashboardContext;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
         private readonly IUrlHelper _urlHelper;
         private readonly IActionContextAccessor _actionContextAccessor;
-        private readonly ILogger<AccountService> _logger;
 
         public AccountService(
             UserManager<ApplicationUser> userManager,
@@ -113,7 +112,7 @@ namespace CandidateDashboardApi.Services
                  new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                  new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                  new Claim(ClaimTypes.NameIdentifier, user.Id),
-                 
+
             }
             .Union(userClaims).ToList();
 
@@ -140,7 +139,7 @@ namespace CandidateDashboardApi.Services
         public async Task<string> LoginUserAsync(string login, string password)
         {
             _logger.LogInformation("Login attempt: {Login}", login);
-            var user = await _userManager.FindByNameAsync(login);
+            var user = await _userManager.FindByEmailAsync(login);
 
             if (user == null)
             {
@@ -187,59 +186,5 @@ namespace CandidateDashboardApi.Services
             return result.Succeeded;
         }
 
-
-        public async Task<object> GetUserDataAsync(ClaimsPrincipal userClaims) 
-        {
-            var userId = userClaims.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
-
-            var candidate = await _candidateDashboardContext.Candidates
-                .Include(c => c.CandidateEducations)
-                .Include(c => c.CandidateExperience)
-                .Include(c => c.CandidateSkills)
-                .Include(c => c.ImportantSites)
-                .Include(c => c.CandidateJobWanted)
-                .FirstOrDefaultAsync(c => c.Id == userId);
-
-            if (candidate != null)
-            {
-                return new
-                {
-                    candidate.Id,
-                    candidate.About,
-                    Educations = candidate.CandidateEducations,
-                    Experiences = candidate.CandidateExperience,
-                    Skills = candidate.CandidateSkills,
-                    Sites = candidate.ImportantSites,
-                    JobsWanted = candidate.CandidateJobWanted
-                };
-            }
-
-            var employer = await _candidateDashboardContext.Employers
-                .Include(e => e.ImportantSites)
-                .FirstOrDefaultAsync(e => e.Id == userId);
-
-            if (employer != null)
-            {
-                return new
-                {
-                    employer.Id,
-                    employer.CompanyName,
-                    employer.CompanyDescription,
-                    Sites = employer.ImportantSites
-                };
-            }
-
-            throw new Exception("Something went wrong  GetUserDataAsync");
-        }
-        public async Task<string> GetUserPhotoUrlAsync(string email)
-        {
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-            {
-                throw new Exception("User not found.");
-            }
-
-            return user.PhotoUrl;
-        }
     }
 }
