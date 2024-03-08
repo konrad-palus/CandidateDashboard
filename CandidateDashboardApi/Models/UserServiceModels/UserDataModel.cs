@@ -1,6 +1,6 @@
 ﻿namespace CandidateDashboardApi.Models.UserServiceModels
 {
-    public class GetUserDataModel
+    public class UserDataModel
     {
         public string? Name { get; set; }
         public string? LastName { get; set; }

@@ -75,5 +75,35 @@ namespace CandidateDashboardApi.Services
 
             return user.PhotoUrl;
         }
+
+        public async Task<ApplicationUser> UpdateUserAsync(ClaimsPrincipal userClaims, string? name = null, string? lastName = null,
+                                                           string? contactEmail = null, int? phoneNumber = null, string? city = null,
+                                                                                                                string? country = null)
+        {
+            var user = await _userManager.FindByEmailAsync(userClaims.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
+
+            if (user == null)
+            {
+                throw new InvalidOperationException("User not found.");
+            }
+
+            user.Name = name ?? user.Name;
+            user.LastName = lastName ?? user.LastName;
+            user.ContactEmail = contactEmail ?? user.ContactEmail;
+            user.PhoneNumber = phoneNumber ?? user.PhoneNumber;
+            user.City = city ?? user.City;
+            user.Country = country ?? user.Country;
+
+            var result = await _userManager.UpdateAsync(user);
+
+            if (!result.Succeeded)
+            {
+                _logger.LogError("User update failed: {errors}", result.Errors);
+                throw new InvalidOperationException("User update failed.");
+            }
+
+            _logger.LogInformation("Uesr updated");
+            return user;
+        }
     }
 }

@@ -1,5 +1,8 @@
-﻿using CandidateDashboardApi.Interfaces;
+﻿using AutoMapper;
+using CandidateDashboardApi.Interfaces;
+using CandidateDashboardApi.Models;
 using CandidateDashboardApi.Models.ResponseModels.AccountServiceResponses;
+using CandidateDashboardApi.Models.UserServiceModels;
 using CandidateDashboardApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,13 +16,15 @@ namespace CandidateDashboardApi.Controllers
     {
         private readonly IBlobService _blobService;
         private readonly UserService _userService;
-
+        private readonly IMapper _mapHelper;
         public UserController(
             IBlobService blobService,
-            UserService userService)
+            UserService userService,
+            IMapper mapHelper)
         {
             _blobService = blobService;
             _userService = userService;
+            _mapHelper = mapHelper;
         }
 
         [Authorize]
@@ -63,6 +68,26 @@ namespace CandidateDashboardApi.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new GetUserDataResponse { Message = $"Failed to retrieve user data. {ex.Message}" });
+            }
+        }
+#if DEPLOYMENT
+        [Authorize]
+#endif
+        [HttpPost("UpdateUserDetails")]
+        public async Task<IActionResult> UpdateUserData([FromBody] UserDataModel userDataModel)
+        {
+            try
+            {
+                var updatedUser = await _userService.UpdateUserAsync(User, userDataModel.Name, userDataModel.LastName, userDataModel.ContactEmail,
+                    userDataModel.PhoneNumber, userDataModel.City, userDataModel.Country);
+
+                var userResponse = _mapHelper.Map<UserDataModel>(updatedUser);
+
+                return Ok(userResponse);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ErrorResponseModel { Message = $"Failed to update user details, {ex}" });
             }
         }
     }
