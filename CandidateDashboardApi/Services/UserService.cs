@@ -1,4 +1,7 @@
-﻿using CandidateDashboardApi.Interfaces;
+﻿using AutoMapper;
+using CandidateDashboardApi.Interfaces;
+using CandidateDashboardApi.Models.EmployerServiceModels;
+using CandidateDashboardApi.Models.UserServiceModels;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -11,58 +14,42 @@ namespace CandidateDashboardApi.Services
     {
         private readonly CandidateDashboardContext _candidateDashboardContext;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ILogger<AccountService> _logger;
+        private readonly ILogger<UserService> _logger;
+        private readonly IMapper _mapper;
         public UserService(CandidateDashboardContext candidateDashboardContext,
              UserManager<ApplicationUser> userManager,
-             ILogger<AccountService> logger)
+             ILogger<UserService> logger,
+             IMapper mapper)
         {
             _candidateDashboardContext = candidateDashboardContext;
             _userManager = userManager;
             _logger = logger;
+            _mapper = mapper;
         }
-
+        //CRKE TU ZRÓB!!!
         public async Task<object> GetUserDataAsync(ClaimsPrincipal userClaims)
         {
-            var userId = userClaims.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            // var userEmail = userClaims.Claims.First(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var userEmail = "konradpalus@gmail.com";
 
-            var candidate = await _candidateDashboardContext.Candidates
-                .Include(c => c.CandidateEducations)
-                .Include(c => c.CandidateExperience)
-                .Include(c => c.CandidateSkills)
-                .Include(c => c.ImportantSites)
-                .Include(c => c.CandidateJobWanted)
-                .FirstOrDefaultAsync(c => c.Id == userId);
-
-            if (candidate != null)
+            if (string.IsNullOrEmpty(userEmail))
             {
-                return new
-                {
-                    candidate.Id,
-                    candidate.About,
-                    Educations = candidate.CandidateEducations,
-                    Experiences = candidate.CandidateExperience,
-                    Skills = candidate.CandidateSkills,
-                    Sites = candidate.ImportantSites,
-                    JobsWanted = candidate.CandidateJobWanted
-                };
+                _logger.LogError("User Email cannot be found in user claims.");
+                throw new InvalidOperationException("User Email cannot be found.");
             }
 
-            var employer = await _candidateDashboardContext.Employers
-                .Include(e => e.ImportantSites)
-                .FirstOrDefaultAsync(e => e.Id == userId);
-
-            if (employer != null)
+            _logger.LogInformation($"Attempting to find user by Email: {userEmail}");
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            if (user == null)
             {
-                return new
-                {
-                    employer.Id,
-                    employer.CompanyName,
-                    employer.CompanyDescription,
-                    Sites = employer.ImportantSites
-                };
+                _logger.LogWarning($"User not found for Email: {userEmail}");
+                throw new InvalidOperationException("User not found.");
             }
 
-            throw new Exception("Something went wrong  GetUserDataAsync");
+            _logger.LogInformation($"User found. Email: {userEmail}. Mapping to DTO...");
+
+            var userDto = _mapper.Map<UserDataModel>(user);
+            return userDto;
         }
 
         public async Task<string> GetUserPhotoUrlAsync(string email)

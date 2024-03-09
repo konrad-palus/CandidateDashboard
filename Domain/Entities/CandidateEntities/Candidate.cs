@@ -12,5 +12,7 @@ namespace Domain.Entities.CandidateEntities
         public virtual ICollection<CandidateSkills>? CandidateSkills { get; set; }
         public virtual ICollection<ImportantSites>? ImportantSites { get; set; }
         public virtual ICollection<CandidateJobWanted>? CandidateJobWanted { get; set; }
+        public string ApplicationUserId { get; set; }
+        public ApplicationUser ApplicationUser { get; set; }
     }
 }

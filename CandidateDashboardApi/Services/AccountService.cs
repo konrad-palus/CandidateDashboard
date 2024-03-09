@@ -49,7 +49,14 @@ namespace CandidateDashboardApi.Services
 
         public async Task<string> RegisterUserAsync(RegistrationModel model)
         {
-            _logger.LogInformation("Someone's trying to register account, email: {Email}", model.RegistrationEmail);
+            _logger.LogInformation("Starting registration process for email: {Email}", model.RegistrationEmail);
+
+            var existingUser = await _userManager.FindByEmailAsync(model.RegistrationEmail);
+            if (existingUser != null)
+            {
+                _logger.LogError("Registration failed. User with email: {Email} already exists.", model.RegistrationEmail);
+                return null;
+            }
 
             var user = new ApplicationUser
             {
@@ -60,39 +67,65 @@ namespace CandidateDashboardApi.Services
                 LastName = model.LastName,
             };
 
-            var result = await _userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
+            var createUserResult = await _userManager.CreateAsync(user, model.Password);
+            if (!createUserResult.Succeeded)
             {
-                _logger.LogError("Registration failed: {Email}", model.RegistrationEmail);
-                throw new Exception("Registration failed");
+                _logger.LogError("Registration failed for: {Email}. Errors: {Errors}",
+                                 model.RegistrationEmail,
+                                 string.Join(", ", createUserResult.Errors.Select(e => e.Description)));
+                return null;
             }
 
             if (model.IsCandidate)
             {
-                _logger.LogInformation("Registred Candidate: {Email}", model.RegistrationEmail);
-                _candidateDashboardContext.Candidates.Add(new Candidate { Id = user.Id });
-                await _userManager.AddToRoleAsync(user, nameof(Candidate));
-
+                var candidate = new Candidate
+                {
+                    ApplicationUserId = user.Id,
+                    Id = Guid.NewGuid().ToString(),
+                };
+                _candidateDashboardContext.Candidates.Add(candidate);
+                user.CandidateId = candidate.Id;
+                _candidateDashboardContext.Update(user);
             }
             else
             {
-                _logger.LogInformation("Registred Employer: {Email}", model.RegistrationEmail);
-                _candidateDashboardContext.Employers.Add(new Employer { Id = user.Id });
-                await _userManager.AddToRoleAsync(user, nameof(Employer));
+                var employer = new Employer 
+                { 
+                    ApplicationUserId = user.Id,
+                    Id = Guid.NewGuid().ToString(),
+                };
+                _candidateDashboardContext.Employers.Add(employer);
+                user.EmployerId = employer.Id; 
+                _candidateDashboardContext.Update(user);
             }
 
             await _candidateDashboardContext.SaveChangesAsync();
 
-            var token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await _userManager.GenerateEmailConfirmationTokenAsync(user)));
+            var addToRoleResult = await _userManager.AddToRoleAsync(user, model.IsCandidate ? "Candidate" : "Employer");
+            if (!addToRoleResult.Succeeded)
+            {
+                _logger.LogError("Failed to add user to role for: {Email}", model.RegistrationEmail);
+                return null;
+            }
 
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await _userManager.GenerateEmailConfirmationTokenAsync(user)));
             var callbackUrl = _urlHelper.ActionLink(
                 "ConfirmEmail", "Account",
-                values: new { email = user.Email, token },
+                new { email = user.Email, token = encodedToken },
                 protocol: _actionContextAccessor.ActionContext.HttpContext.Request.Scheme);
 
-            await _emailService.SendEmailAsync(model.RegistrationEmail, "Confirm your email",
-                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+            try
+            {
+                await _emailService.SendEmailAsync(model.RegistrationEmail, "Confirm your email",
+                    $"Please confirm your account by clicking <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>here</a>.");
+                _logger.LogInformation("Verification email sent to: {Email}", model.RegistrationEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending verification email to: {Email}", model.RegistrationEmail);
+            }
 
+            _logger.LogInformation("User registration completed successfully for: {Email}", model.RegistrationEmail);
             return user.Id;
         }
 
@@ -184,6 +217,54 @@ namespace CandidateDashboardApi.Services
             }
 
             return result.Succeeded;
+        }
+
+        public async Task ForgotPasswordAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+
+            if (user != null)
+            {
+                var token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await _userManager.GeneratePasswordResetTokenAsync(user)));
+                //test
+                var callbackUrl = $"http://localhost:4200/welcome?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";
+                _logger.LogInformation("User {email} changed password", email);
+
+
+                await _emailService.SendEmailAsync(user.Email, "Reset hasła",
+                    $"Aby zresetować hasło kliknij <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>tutaj</a>.");
+            }
+        }
+
+        public async Task<IdentityResult> ResetPasswordAsync(string email, string token, string password)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+
+            if (user == null)
+            {
+                _logger.LogWarning($"{nameof(ResetPasswordAsync)}: user with provided email not found: {email}.");
+                throw new InvalidOperationException($"user with provided email: {email} not found.");
+            }
+
+            try
+            {
+                var result = await _userManager.ResetPasswordAsync(user, Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token)), password);
+
+                if (result.Succeeded)
+                {
+                    _logger.LogInformation($"{nameof(ResetPasswordAsync)} for {user.Email} completed successfully.");
+                    return result;
+                }
+
+                var errorDescription = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogError($"ResetPasswordAsync for {user.Email} completed unsuccessfully: {errorDescription}");
+                throw new InvalidOperationException($"ResetPasswordAsync for {user.Email} completed unsuccessfully: {errorDescription}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Exception occurred during password reset for {user.Email}: {ex.Message}");
+                throw;
+            }
         }
 
     }

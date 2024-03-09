@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace CandidateDashboardApi.Interfaces
 {
@@ -8,5 +9,7 @@ namespace CandidateDashboardApi.Interfaces
         public Task<string> LoginUserAsync(string login, string password);
         public Task<string> GenerateJwtTokenAsync(string email);
         public Task<bool> ConfirmUserEmailAsync(string email, string token);
+        public Task ForgotPasswordAsync(string email);
+        public Task<IdentityResult> ResetPasswordAsync(string email, string token, string password);
     }
 }

@@ -9,5 +9,7 @@ namespace Domain.Entities
         public string? CompanyName { get; set; }
         public string? CompanyDescription { get; set; }
         public ICollection<ImportantSites>? ImportantSites { get; set; }
+        public string ApplicationUserId { get; set; }
+        public ApplicationUser ApplicationUser { get; set; }
     }
 }

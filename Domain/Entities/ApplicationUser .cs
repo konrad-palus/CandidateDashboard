@@ -13,7 +13,10 @@ namespace Domain.Entities
         public string? City { get; set; }
         public string? Country { get; set; }
         public string? PhotoUrl { get; set; }
-        public Candidate Candidate { get; set; }
-        public Employer Employer { get; set; }
+        public string? CandidateId { get; set; }
+        public virtual Candidate? Candidate { get; set; }
+
+        public string? EmployerId { get; set; }
+        public virtual Employer? Employer { get; set; }
     }
 }
