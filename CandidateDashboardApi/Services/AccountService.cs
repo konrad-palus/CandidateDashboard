@@ -1,4 +1,6 @@
-﻿using CandidateDashboardApi.Interfaces;
+﻿using AutoMapper;
+using CandidateDashboardApi.Interfaces;
+using CandidateDashboardApi.Models;
 using Domain.Entities;
 using Domain.Entities.CandidateEntities;
 using Microsoft.AspNetCore.Identity;
@@ -26,6 +28,7 @@ namespace CandidateDashboardApi.Services
         private readonly IEmailService _emailService;
         private readonly IUrlHelper _urlHelper;
         private readonly IActionContextAccessor _actionContextAccessor;
+        private readonly IMapper _mapper;
 
         public AccountService(
             UserManager<ApplicationUser> userManager,
@@ -35,7 +38,8 @@ namespace CandidateDashboardApi.Services
             IEmailService emailService,
             IUrlHelperFactory factory,
             IActionContextAccessor actionContextAccessor,
-             ILogger<AccountService> logger)
+             ILogger<AccountService> logger,
+              IMapper mapper)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -45,88 +49,47 @@ namespace CandidateDashboardApi.Services
             _urlHelper = factory.GetUrlHelper(actionContextAccessor.ActionContext);
             _actionContextAccessor = actionContextAccessor;
             _logger = logger;
+            _mapper = mapper;
         }
 
-        public async Task<string> RegisterUserAsync(RegistrationModel model)
+        public async Task<ApiResponse<string>> RegisterUserAsync(RegistrationModel model)
         {
-            _logger.LogInformation("Starting registration process for email: {Email}", model.RegistrationEmail);
+            _logger.LogInformation("{MethodName} -> Starting registration process for email: {Email}", nameof(RegisterUserAsync),  model.RegistrationEmail);
 
             var existingUser = await _userManager.FindByEmailAsync(model.RegistrationEmail);
             if (existingUser != null)
             {
-                _logger.LogError("Registration failed. User with email: {Email} already exists.", model.RegistrationEmail);
-                return null;
+                _logger.LogError("{MethodName} -> Registration failed. User with email: {Email} already exists.", nameof(RegisterUserAsync), model.RegistrationEmail);
+                return new ApiResponse<string>(new List<string> { $"User with email {model.RegistrationEmail} already exists." }, "User already exists");
             }
 
-            var user = new ApplicationUser
-            {
-                UserName = model.Login,
-                Email = model.RegistrationEmail,
-                ContactEmail = model.RegistrationEmail,
-                Name = model.Name,
-                LastName = model.LastName,
-            };
+            ApplicationUser user = model.IsCandidate ? _mapper.Map<Candidate>(model) : _mapper.Map<Employer>(model);
 
             var createUserResult = await _userManager.CreateAsync(user, model.Password);
             if (!createUserResult.Succeeded)
             {
-                _logger.LogError("Registration failed for: {Email}. Errors: {Errors}",
-                                 model.RegistrationEmail,
-                                 string.Join(", ", createUserResult.Errors.Select(e => e.Description)));
-                return null;
+                _logger.LogError("{MethodName} -> Registration failed for: {Email}. Errors: {Errors}", nameof(RegisterUserAsync), model.RegistrationEmail,
+                                    string.Join(", ", createUserResult.Errors.Select(e => e.Description)));
+                return new ApiResponse<string>(createUserResult.Errors.Select(e => e.Description).ToList(), "Registration failed");
             }
 
-            if (model.IsCandidate)
+            var roleResult = await _userManager.AddToRoleAsync(user, model.IsCandidate ? nameof(Candidate) : nameof(Employer));
+            if (!roleResult.Succeeded)
             {
-                var candidate = new Candidate
-                {
-                    ApplicationUserId = user.Id,
-                    Id = Guid.NewGuid().ToString(),
-                };
-                _candidateDashboardContext.Candidates.Add(candidate);
-                user.CandidateId = candidate.Id;
-                _candidateDashboardContext.Update(user);
-            }
-            else
-            {
-                var employer = new Employer 
-                { 
-                    ApplicationUserId = user.Id,
-                    Id = Guid.NewGuid().ToString(),
-                };
-                _candidateDashboardContext.Employers.Add(employer);
-                user.EmployerId = employer.Id; 
-                _candidateDashboardContext.Update(user);
+                _logger.LogError("{MethodName} -> Failed to add user to role for: {Email}.", nameof(RegisterUserAsync), model.RegistrationEmail);
+                return new ApiResponse<string>(roleResult.Errors.Select(e => e.Description).ToList(), "Failed to add user to role");
             }
 
-            await _candidateDashboardContext.SaveChangesAsync();
+            var confirmationToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await _userManager.GenerateEmailConfirmationTokenAsync(user)));
+            var callbackUrl = _urlHelper.ActionLink("ConfirmEmail", "Account",
+                                                        new { email = user.Email, token = confirmationToken },
+                                                        protocol: _actionContextAccessor.ActionContext!.HttpContext.Request.Scheme);
 
-            var addToRoleResult = await _userManager.AddToRoleAsync(user, model.IsCandidate ? "Candidate" : "Employer");
-            if (!addToRoleResult.Succeeded)
-            {
-                _logger.LogError("Failed to add user to role for: {Email}", model.RegistrationEmail);
-                return null;
-            }
+            await _emailService.SendEmailAsync(model.RegistrationEmail,
+                                                "Confirm your email", $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl!)}'>clicking here</a>.");
 
-            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await _userManager.GenerateEmailConfirmationTokenAsync(user)));
-            var callbackUrl = _urlHelper.ActionLink(
-                "ConfirmEmail", "Account",
-                new { email = user.Email, token = encodedToken },
-                protocol: _actionContextAccessor.ActionContext.HttpContext.Request.Scheme);
-
-            try
-            {
-                await _emailService.SendEmailAsync(model.RegistrationEmail, "Confirm your email",
-                    $"Please confirm your account by clicking <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>here</a>.");
-                _logger.LogInformation("Verification email sent to: {Email}", model.RegistrationEmail);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending verification email to: {Email}", model.RegistrationEmail);
-            }
-
-            _logger.LogInformation("User registration completed successfully for: {Email}", model.RegistrationEmail);
-            return user.Id;
+            _logger.LogInformation("{MethodName} -> User registration completed successfully for: {Email}", nameof(RegisterUserAsync), model.RegistrationEmail);
+            return new ApiResponse<string>(user.Id, "Registration successful");
         }
 
         public async Task<string> GenerateJwtTokenAsync(string email)
@@ -171,8 +134,8 @@ namespace CandidateDashboardApi.Services
 
         public async Task<string> LoginUserAsync(string login, string password)
         {
+            var user = await _userManager.FindByNameAsync(login);
             _logger.LogInformation("Login attempt: {Login}", login);
-            var user = await _userManager.FindByEmailAsync(login);
 
             if (user == null)
             {
@@ -227,7 +190,7 @@ namespace CandidateDashboardApi.Services
             {
                 var token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await _userManager.GeneratePasswordResetTokenAsync(user)));
                 //test
-                var callbackUrl = $"http://localhost:4200/welcome?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";
+                var callbackUrl = $"http://localhost:4200/welcome/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";
                 _logger.LogInformation("User {email} changed password", email);
 
 

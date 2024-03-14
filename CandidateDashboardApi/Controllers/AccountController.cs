@@ -1,4 +1,5 @@
-﻿using CandidateDashboardApi.Models.AccountServiceModels;
+﻿using CandidateDashboardApi.Models;
+using CandidateDashboardApi.Models.AccountServiceModels;
 using CandidateDashboardApi.Models.ResponseModels;
 using CandidateDashboardApi.Models.ResponseModels.AccountServiceResponses;
 using CandidateDashboardApi.Models.ResponseModels.EmployerServiceResponses;
@@ -26,12 +27,14 @@ namespace CandidateDashboardApi.Controllers
         {
             try
             {
-                var userId = await _accountService.RegisterUserAsync(model);
-                return Ok(new RegistrationResponse { UserId = userId, Message = "Registration successful." });
+                var response = await _accountService.RegisterUserAsync(model);
+                return response.Success ? Ok(response) : BadRequest(response);
+
             }
             catch (Exception ex)
             {
-                return BadRequest(new RegistrationResponse { Message = $"Registration failed. {ex.Message}" });
+                var errorResponse = new ApiResponse<string>(new List<string> { ex.Message }, "Unexpected error occurred during registration.");
+                return StatusCode(500, errorResponse);
             }
         }
 
