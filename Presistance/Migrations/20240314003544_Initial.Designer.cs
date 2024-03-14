@@ -12,8 +12,8 @@ using Presistance;
 namespace Presistence.Migrations
 {
     [DbContext(typeof(CandidateDashboardContext))]
-    [Migration("20240309031258_initialCreate")]
-    partial class initialCreate
+    [Migration("20240314003544_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -32,9 +32,6 @@ namespace Presistence.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
-
-                    b.Property<string>("CandidateId")
-                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("City")
                         .HasColumnType("nvarchar(max)");
@@ -55,9 +52,6 @@ namespace Presistence.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
-
-                    b.Property<string>("EmployerId")
-                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("LastName")
                         .HasColumnType("nvarchar(max)");
@@ -82,8 +76,8 @@ namespace Presistence.Migrations
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("PhoneNumber")
-                        .HasColumnType("int");
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
@@ -103,14 +97,6 @@ namespace Presistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CandidateId")
-                        .IsUnique()
-                        .HasFilter("[CandidateId] IS NOT NULL");
-
-                    b.HasIndex("EmployerId")
-                        .IsUnique()
-                        .HasFilter("[EmployerId] IS NOT NULL");
-
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
@@ -120,23 +106,8 @@ namespace Presistence.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
-                });
 
-            modelBuilder.Entity("Domain.Entities.CandidateEntities.Candidate", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("About")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ApplicationUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Candidates");
+                    b.UseTptMappingStrategy();
                 });
 
             modelBuilder.Entity("Domain.Entities.CandidateEntities.CandidateEducation", b =>
@@ -223,7 +194,7 @@ namespace Presistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("MinimumWage")
+                    b.Property<int>("MinimumWage")
                         .HasColumnType("int");
 
                     b.Property<string>("PositionName")
@@ -243,7 +214,6 @@ namespace Presistence.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CandidateId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Description")
@@ -259,26 +229,6 @@ namespace Presistence.Migrations
                     b.HasIndex("CandidateId");
 
                     b.ToTable("CandidateSkills");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Employer", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ApplicationUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CompanyDescription")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CompanyName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Employers");
                 });
 
             modelBuilder.Entity("Domain.Entities.ImportantSites", b =>
@@ -446,19 +396,27 @@ namespace Presistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.ApplicationUser", b =>
+            modelBuilder.Entity("Domain.Entities.CandidateEntities.Candidate", b =>
                 {
-                    b.HasOne("Domain.Entities.CandidateEntities.Candidate", "Candidate")
-                        .WithOne("ApplicationUser")
-                        .HasForeignKey("Domain.Entities.ApplicationUser", "CandidateId");
+                    b.HasBaseType("Domain.Entities.ApplicationUser");
 
-                    b.HasOne("Domain.Entities.Employer", "Employer")
-                        .WithOne("ApplicationUser")
-                        .HasForeignKey("Domain.Entities.ApplicationUser", "EmployerId");
+                    b.Property<string>("About")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Navigation("Candidate");
+                    b.ToTable("Candidates", (string)null);
+                });
 
-                    b.Navigation("Employer");
+            modelBuilder.Entity("Domain.Entities.Employer", b =>
+                {
+                    b.HasBaseType("Domain.Entities.ApplicationUser");
+
+                    b.Property<string>("CompanyDescription")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CompanyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.ToTable("Employers", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.CandidateEntities.CandidateEducation", b =>
@@ -492,9 +450,7 @@ namespace Presistence.Migrations
                 {
                     b.HasOne("Domain.Entities.CandidateEntities.Candidate", "Candidate")
                         .WithMany("CandidateSkills")
-                        .HasForeignKey("CandidateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CandidateId");
 
                     b.Navigation("Candidate");
                 });
@@ -563,9 +519,24 @@ namespace Presistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.CandidateEntities.Candidate", b =>
                 {
-                    b.Navigation("ApplicationUser")
+                    b.HasOne("Domain.Entities.ApplicationUser", null)
+                        .WithOne()
+                        .HasForeignKey("Domain.Entities.CandidateEntities.Candidate", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
 
+            modelBuilder.Entity("Domain.Entities.Employer", b =>
+                {
+                    b.HasOne("Domain.Entities.ApplicationUser", null)
+                        .WithOne()
+                        .HasForeignKey("Domain.Entities.Employer", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.CandidateEntities.Candidate", b =>
+                {
                     b.Navigation("CandidateEducations");
 
                     b.Navigation("CandidateExperience");
@@ -579,9 +550,6 @@ namespace Presistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.Employer", b =>
                 {
-                    b.Navigation("ApplicationUser")
-                        .IsRequired();
-
                     b.Navigation("ImportantSites");
                 });
 #pragma warning restore 612, 618

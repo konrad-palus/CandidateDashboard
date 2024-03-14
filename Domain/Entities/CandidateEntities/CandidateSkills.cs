@@ -10,7 +10,7 @@ namespace Domain.Entities.CandidateEntities
         [Required]
         public string SkillName { get; set; }
         [Required]
-        public string? Description { get; set; }
-        public virtual Candidate Candidate { get; set; }
+        public string Description { get; set; }
+        public  Candidate Candidate { get; set; }
     }
 }

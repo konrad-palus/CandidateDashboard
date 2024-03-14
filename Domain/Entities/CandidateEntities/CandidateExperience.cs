@@ -15,7 +15,7 @@ namespace Domain.Entities.CandidateEntities
         public string CompanyName { get; set; }
         [Required]
         public string Role { get; set; }
-        public string? Description { get; set; }
-        public virtual Candidate Candidate { get; set; }
+        public string Description { get; set; }
+        public  Candidate Candidate { get; set; }
     }
 }

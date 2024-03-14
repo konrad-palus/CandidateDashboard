@@ -14,6 +14,6 @@ namespace Domain.Entities.CandidateEntities
         [Required]
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public virtual Candidate Candidate { get; set; }
+        public Candidate Candidate { get; set; }
     }
 }

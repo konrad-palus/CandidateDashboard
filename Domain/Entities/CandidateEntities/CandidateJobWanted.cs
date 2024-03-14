@@ -17,7 +17,7 @@ namespace Domain.Entities.CandidateEntities
         public List<ContractType> ContractTypeList { get; set; }
         [Required]
         public int ExpectedWage { get; set; }
-        public int? MinimumWage { get; set; }
-        public virtual Candidate Candidate { get; set; }
+        public int MinimumWage { get; set; }
+        public  Candidate Candidate { get; set; }
     }
 }

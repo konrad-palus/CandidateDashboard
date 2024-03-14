@@ -2,17 +2,13 @@
 
 namespace Domain.Entities.CandidateEntities
 {
-    public class Candidate 
+    public class Candidate : ApplicationUser
     {
-        [Key]
-        public string Id { get; set; }
-        public string? About { get; set; }
-        public virtual ICollection<CandidateEducation>? CandidateEducations { get; set;}
-        public virtual ICollection<CandidateExperience>? CandidateExperience { get; set; }
-        public virtual ICollection<CandidateSkills>? CandidateSkills { get; set; }
-        public virtual ICollection<ImportantSites>? ImportantSites { get; set; }
-        public virtual ICollection<CandidateJobWanted>? CandidateJobWanted { get; set; }
-        public string ApplicationUserId { get; set; }
-        public ApplicationUser ApplicationUser { get; set; }
+        public string About { get; set; }
+        public  ICollection<CandidateEducation> CandidateEducations { get; set;} = new List<CandidateEducation>();
+        public  ICollection<CandidateExperience> CandidateExperience { get; set; } = new List<CandidateExperience>();
+        public  ICollection<CandidateSkills> CandidateSkills { get; set; } = new HashSet<CandidateSkills>();
+        public  ICollection<ImportantSites> ImportantSites { get; set; } = new HashSet<ImportantSites>();
+        public  ICollection<CandidateJobWanted> CandidateJobWanted { get; set; } = new HashSet<CandidateJobWanted>();
     }
 }

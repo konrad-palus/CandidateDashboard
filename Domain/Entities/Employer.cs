@@ -2,14 +2,10 @@
 
 namespace Domain.Entities
 {
-    public class Employer
+    public class Employer : ApplicationUser
     {
-        [Key]
-        public string Id { get; set; }
-        public string? CompanyName { get; set; }
-        public string? CompanyDescription { get; set; }
-        public ICollection<ImportantSites>? ImportantSites { get; set; }
-        public string ApplicationUserId { get; set; }
-        public ApplicationUser ApplicationUser { get; set; }
+        public string CompanyName { get; set; }
+        public string CompanyDescription { get; set; }
+        public ICollection<ImportantSites> ImportantSites { get; set; } = new HashSet<ImportantSites>();
     }
 }
