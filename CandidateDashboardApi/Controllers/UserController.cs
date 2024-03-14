@@ -29,32 +29,35 @@ namespace CandidateDashboardApi.Controllers
         }
 
         [Authorize]
-        [HttpPost("upload-photo")]
-        [Consumes("multipart/form-data")]
+        [HttpPost("UploadPhoto")]
         public async Task<IActionResult> UploadPhoto([FromForm] IFormFile photo)
         {
-            var photoUrl = await _blobService.UploadPhotoAsync(photo, User.FindFirstValue(ClaimTypes.NameIdentifier));
-
-            return Ok(new { photoUrl });
+            try
+            {
+                var response = await _blobService.UploadPhotoAsync(photo, User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)!.Value);
+                return response.Success ? Ok(response) : BadRequest(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(new List<string> { ex.Message }, $"Unexpected error occurred during uploading photo"));
+            }
         }
 
         [Authorize]
-        [HttpGet("get-photo")]
+        [HttpGet("GetPhoto")]
         public async Task<IActionResult> GetUserPhoto()
         {
             var userEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userEmail))
-            {
-                return Unauthorized("User is not authenticated.");
-            }
 
-            var photoUrl = await _userService.GetUserPhotoUrlAsync(userEmail);
-            if (string.IsNullOrEmpty(photoUrl))
+            try
             {
-                return NotFound(new { message = "Photo not found." });
+                var response = await _userService.GetUserPhotoUrlAsync(userEmail!);
+                return response.Success ? Ok(response) : BadRequest(response);
             }
-
-            return Ok(new { photoUrl });
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>(new List<string> { ex.Message }, $"Unexpected error occurred while getting photo"));
+            }
         }
 
         [Authorize]
@@ -71,9 +74,8 @@ namespace CandidateDashboardApi.Controllers
                 return BadRequest(new GetUserDataResponse { Message = $"Failed to retrieve user data. {ex.Message}" });
             }
         }
-#if DEPLOYMENT
+
         [Authorize]
-#endif
         [HttpPost("UpdateUserDetails")]
         public async Task<IActionResult> UpdateUserData([FromBody] UserUpdateModel userUpdateModel)
         {

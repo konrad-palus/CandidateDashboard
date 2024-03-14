@@ -1,7 +1,9 @@
-﻿namespace CandidateDashboardApi.Interfaces
+﻿using CandidateDashboardApi.Models;
+
+namespace CandidateDashboardApi.Interfaces
 {
     public interface IBlobService
     {
-         Task<string> UploadPhotoAsync(IFormFile photo, string userId);
+        Task<ApiResponse<string>> UploadPhotoAsync(IFormFile photo, string userEmail);
     }
 }

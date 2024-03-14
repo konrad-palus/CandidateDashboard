@@ -213,7 +213,7 @@ namespace CandidateDashboardApi.Services
             if (user != null)
             {
                 var token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await _userManager.GeneratePasswordResetTokenAsync(user)));
-                var callbackUrl = $"http://localhost:4200/welcome/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";
+                var callbackUrl = $"{_baseUrl}/welcome/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";
                 _logger.LogInformation("{MethodName} -> User {Email} requested password reset", nameof(ForgotPasswordAsync), email);
 
                 await _emailService.SendEmailAsync(user.Email, "Reset hasła", $"Aby zresetować hasło kliknij <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>tutaj</a>.");

@@ -1,14 +1,15 @@
-﻿using Domain.Entities;
+﻿using CandidateDashboardApi.Models;
+using CandidateDashboardApi.Models.EmployerServiceModels;
+using Domain.Entities;
 using System.Security.Claims;
 
 namespace CandidateDashboardApi.Interfaces
 {
     public interface IUserService
     {
-        public Task<object> GetUserDataAsync(ClaimsPrincipal userClaims);
-        public Task<string> GetUserPhotoUrlAsync(string email);
-        public Task<ApplicationUser> UpdateUserAsync(ClaimsPrincipal userClaims, string? name = null, string? lastName = null,
-                                                           string? contactEmail = null, int? phoneNumber = null, string? city = null,
-                                                                                                                string? country = null);
+        Task<object> GetUserDataAsync(ClaimsPrincipal userClaims);
+        Task<ApiResponse<string>> GetUserPhotoUrlAsync(string email);
+        Task<ApplicationUser> UpdateUserAsync(ClaimsPrincipal userClaims, UserUpdateModel userUpdateModel);
+
     }
 }

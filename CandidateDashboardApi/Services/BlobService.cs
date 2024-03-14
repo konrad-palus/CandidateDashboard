@@ -1,20 +1,15 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using CandidateDashboardApi.Interfaces;
+using CandidateDashboardApi.Models;
 using Domain.Entities;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Presistance;
-using System;
-using System.IO;
-using System.Threading.Tasks;
 
 public class BlobService : IBlobService
 {
     private readonly BlobServiceClient _blobServiceClient;
-    private readonly string _containerName = "profilephoto";
+    private readonly string _containerName;
     private readonly CandidateDashboardContext _candidateDashboardContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<BlobService> _logger;
@@ -23,55 +18,64 @@ public class BlobService : IBlobService
         IConfiguration configuration,
         CandidateDashboardContext candidateDashboardContext,
         UserManager<ApplicationUser> userManager,
-        ILogger<BlobService> logger) 
+        ILogger<BlobService> logger)
     {
-        var connectionString = configuration.GetConnectionString("AzureBlobStorage");
-        _blobServiceClient = new BlobServiceClient(connectionString);
+        _containerName = configuration["AppSettings:BlobContainerName"]!;
+
+        _blobServiceClient = new BlobServiceClient(configuration.GetConnectionString("AzureBlobStorage"));
         _candidateDashboardContext = candidateDashboardContext;
         _userManager = userManager;
         _logger = logger;
     }
 
-    public async Task<string> UploadPhotoAsync(IFormFile photo, string userEmail)
+    public async Task<ApiResponse<string>> UploadPhotoAsync(IFormFile photo, string userEmail)
     {
-        _logger.LogInformation("Uploading photo for user: {UserEmail}", userEmail); 
+        _logger.LogInformation("{MethodName} -> Attempting to upload photo for user: {UserEmail}", nameof(UploadPhotoAsync), userEmail);
+
+        if (photo == null)
+        {
+            _logger.LogWarning("{MethodName} -> Photo upload failed for user: {UserEmail} because the file was empty.", nameof(UploadPhotoAsync), userEmail);
+
+            return new ApiResponse<string>("No photo uploaded, the file was empty.", "No photo uploaded, the file was empty.");
+        }
+
+        var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+        await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+        var blobClient = containerClient.GetBlobClient(GetUniqueFileName(userEmail, photo.FileName));
+
+        if (await blobClient.ExistsAsync())
+        {
+            await blobClient.DeleteIfExistsAsync();
+        }
 
         try
         {
-            var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
-            await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
-
-            string fileName = GetUniqueFileName(userEmail, photo.FileName);
-            var blobClient = containerClient.GetBlobClient(fileName);
-
-            if (await blobClient.ExistsAsync())
-            {
-                await blobClient.DeleteAsync();
-            }
-
             using (var stream = photo.OpenReadStream())
             {
                 await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = photo.ContentType });
             }
 
-            var photoUrl = blobClient.Uri.ToString();
             var user = await _userManager.FindByEmailAsync(userEmail);
-
-            if (user != null)
+            if (user == null)
             {
-                user.PhotoUrl = photoUrl;
-                _candidateDashboardContext.Users.Update(user);
-                await _candidateDashboardContext.SaveChangesAsync();
+                _logger.LogWarning("{MethodName} -> Photo upload failed for user: {UserEmail} because the user was not found.", nameof(UploadPhotoAsync), userEmail);
+
+                return new ApiResponse<string>("User not found.", "User not found.");
             }
 
-            _logger.LogInformation("Photo uploaded successfully for user: {UserEmail}", userEmail);
+            user.PhotoUrl = blobClient.Uri.ToString();
+            _candidateDashboardContext.Users.Update(user);
+            await _candidateDashboardContext.SaveChangesAsync();
 
-            return photoUrl;
+            _logger.LogInformation("{MethodName} -> Photo uploaded successfully for user: {UserEmail}", nameof(UploadPhotoAsync), userEmail);
+
+            return new ApiResponse<string>(user.PhotoUrl, "Photo uploaded successfully.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading photo for user: {UserEmail}", userEmail);
-            throw;
+            _logger.LogError(ex, "{MethodName} -> Error occurred uploading photo for user: {UserEmail}", nameof(UploadPhotoAsync), userEmail);
+
+            return new ApiResponse<string>(ex.Message, $"Error occurred while uploading the photo: {ex.Message}");
         }
     }
 
@@ -81,6 +85,7 @@ public class BlobService : IBlobService
 
         if (fileExtension != ".jpg" && fileExtension != ".png")
         {
+            _logger.LogError("{MethodName} -> Error occurred while getting unique file name", nameof(GetUniqueFileName));
             throw new InvalidOperationException("Invalid file type.");
         }
 
