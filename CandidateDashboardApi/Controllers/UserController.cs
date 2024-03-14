@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CandidateDashboardApi.Interfaces;
 using CandidateDashboardApi.Models;
+using CandidateDashboardApi.Models.EmployerServiceModels;
 using CandidateDashboardApi.Models.ResponseModels.AccountServiceResponses;
 using CandidateDashboardApi.Models.UserServiceModels;
 using CandidateDashboardApi.Services;
@@ -74,20 +75,23 @@ namespace CandidateDashboardApi.Controllers
         [Authorize]
 #endif
         [HttpPost("UpdateUserDetails")]
-        public async Task<IActionResult> UpdateUserData([FromBody] UserDataModel userDataModel)
+        public async Task<IActionResult> UpdateUserData([FromBody] UserUpdateModel userUpdateModel)
         {
             try
             {
-                var updatedUser = await _userService.UpdateUserAsync(User, userDataModel.Name, userDataModel.LastName, userDataModel.ContactEmail,
-                    userDataModel.PhoneNumber, userDataModel.City, userDataModel.Country);
-
+                var updatedUser = await _userService.UpdateUserAsync(User, userUpdateModel);
                 var userResponse = _mapHelper.Map<UserDataModel>(updatedUser);
 
                 return Ok(userResponse);
             }
+            catch (InvalidOperationException ex)
+            {
+
+                return BadRequest(new { Message = ex.Message });
+            }
             catch (Exception ex)
             {
-                return BadRequest(new ErrorResponseModel { Message = $"Failed to update user details, {ex}" });
+                return StatusCode(500, new ErrorResponseModel{ Message = "An unexpected error occurred" });
             }
         }
     }

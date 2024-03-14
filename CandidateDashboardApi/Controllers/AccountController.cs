@@ -33,23 +33,23 @@ namespace CandidateDashboardApi.Controllers
             }
             catch (Exception ex)
             {
-                var errorResponse = new ApiResponse<string>(new List<string> { ex.Message }, "Unexpected error occurred during registration.");
-                return StatusCode(500, errorResponse);
+                return StatusCode(500, new ApiResponse<string>(new List<string> { ex.Message }, "Unexpected error occurred during registration."));
             }
         }
 
         [HttpPost]
         [Route("Login")]
-        public async Task<IActionResult> Login([FromBody] SignInModel model)
+        public async Task<IActionResult> Login([FromBody] LogInModel model)
         {
             try
             {
-                var token = await _accountService.LoginUserAsync(model.Login, model.Password);
-                return Ok(new LoginResponse { Token = token, Message = "Login successful." });
+                var response = await _accountService.LoginUserAsync(model.Login, model.Password);
+                return response.Success ? Ok(response) : BadRequest(response);
+
             }
             catch (Exception ex)
             {
-                return BadRequest(new LoginResponse { Message = $"Login failed. {ex.Message}" });
+                return StatusCode(500, new ApiResponse<string>(new List<string> { ex.Message }, "Unexpected error occurred during login."));
             }
         }
 

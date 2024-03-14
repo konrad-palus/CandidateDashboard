@@ -132,26 +132,28 @@ namespace CandidateDashboardApi.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<string> LoginUserAsync(string login, string password)
+        public async Task<ApiResponse<string>> LoginUserAsync(string login, string password)
         {
-            var user = await _userManager.FindByNameAsync(login);
-            _logger.LogInformation("Login attempt: {Login}", login);
+            _logger.LogInformation("Login attempt for {Login}", login);
 
+            var user = await _userManager.FindByNameAsync(login);
             if (user == null)
             {
-                throw new Exception("User not found");
+                _logger.LogWarning("{methodName} -> Login failed for {Login}: User not found", nameof(LoginUserAsync), login);
+                return new ApiResponse<string>(new List<string> { $"User not found." }, "User not found");
             }
 
             var result = await _signInManager.PasswordSignInAsync(user.UserName, password, isPersistent: true, lockoutOnFailure: false);
-
             if (!result.Succeeded)
             {
-                _logger.LogError("Login failed: {Login}", login);
-                throw new Exception("Login failed");
+                _logger.LogWarning("{MethodName} ->  Login failed for {Login}", nameof(LoginUserAsync), login);
+                return new ApiResponse<string>(new List<string> { $"Invalid login attempt." }, "Invalid login attempt") { Success = false };
             }
 
-            return await GenerateJwtTokenAsync(user.Email);
+            var token = await GenerateJwtTokenAsync(user.Email);
 
+            _logger.LogInformation("{MethodName} ->  Login successful for {Login}", nameof(LoginUserAsync), login);
+            return new ApiResponse<string>(token, "Login successful.");
         }
 
         public async Task<bool> ConfirmUserEmailAsync(string email, string token)
