@@ -2,6 +2,6 @@
 {
     public interface IBlobService
     {
-        public Task<string> UploadPhotoAsync(IFormFile photo, string userId);
+         Task<string> UploadPhotoAsync(IFormFile photo, string userId);
     }
 }

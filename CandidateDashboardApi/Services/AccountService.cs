@@ -29,6 +29,7 @@ namespace CandidateDashboardApi.Services
         private readonly IUrlHelper _urlHelper;
         private readonly IActionContextAccessor _actionContextAccessor;
         private readonly IMapper _mapper;
+        private readonly string _baseUrl;
 
         public AccountService(
             UserManager<ApplicationUser> userManager,
@@ -38,8 +39,9 @@ namespace CandidateDashboardApi.Services
             IEmailService emailService,
             IUrlHelperFactory factory,
             IActionContextAccessor actionContextAccessor,
-             ILogger<AccountService> logger,
-              IMapper mapper)
+            ILogger<AccountService> logger,
+            IMapper mapper,
+            IWebHostEnvironment env)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -50,16 +52,23 @@ namespace CandidateDashboardApi.Services
             _actionContextAccessor = actionContextAccessor;
             _logger = logger;
             _mapper = mapper;
+
+            _baseUrl = _configuration["AppSettings:BaseUrl"]!;
+            if (env.IsDevelopment())
+            {
+                _baseUrl = _configuration["AppSettings:DevelopmentBaseUrl"]!;
+            }
         }
 
         public async Task<ApiResponse<string>> RegisterUserAsync(RegistrationModel model)
         {
-            _logger.LogInformation("{MethodName} -> Starting registration process for email: {Email}", nameof(RegisterUserAsync),  model.RegistrationEmail);
+            _logger.LogInformation("{MethodName} -> Starting registration process for email: {Email}", nameof(RegisterUserAsync), model.RegistrationEmail);
 
             var existingUser = await _userManager.FindByEmailAsync(model.RegistrationEmail);
             if (existingUser != null)
             {
                 _logger.LogError("{MethodName} -> Registration failed. User with email: {Email} already exists.", nameof(RegisterUserAsync), model.RegistrationEmail);
+
                 return new ApiResponse<string>(new List<string> { $"User with email {model.RegistrationEmail} already exists." }, "User already exists");
             }
 
@@ -70,6 +79,7 @@ namespace CandidateDashboardApi.Services
             {
                 _logger.LogError("{MethodName} -> Registration failed for: {Email}. Errors: {Errors}", nameof(RegisterUserAsync), model.RegistrationEmail,
                                     string.Join(", ", createUserResult.Errors.Select(e => e.Description)));
+
                 return new ApiResponse<string>(createUserResult.Errors.Select(e => e.Description).ToList(), "Registration failed");
             }
 
@@ -77,6 +87,7 @@ namespace CandidateDashboardApi.Services
             if (!roleResult.Succeeded)
             {
                 _logger.LogError("{MethodName} -> Failed to add user to role for: {Email}.", nameof(RegisterUserAsync), model.RegistrationEmail);
+
                 return new ApiResponse<string>(roleResult.Errors.Select(e => e.Description).ToList(), "Failed to add user to role");
             }
 
@@ -89,6 +100,7 @@ namespace CandidateDashboardApi.Services
                                                 "Confirm your email", $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl!)}'>clicking here</a>.");
 
             _logger.LogInformation("{MethodName} -> User registration completed successfully for: {Email}", nameof(RegisterUserAsync), model.RegistrationEmail);
+
             return new ApiResponse<string>(user.Id, "Registration successful");
         }
 
@@ -97,7 +109,8 @@ namespace CandidateDashboardApi.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                throw new Exception("User not found.");
+                _logger.LogError("{MethodName} -> User not found for email: {Email}", nameof(GenerateJwtTokenAsync), email);
+                throw new InvalidOperationException("User not found.");
             }
 
             var userClaims = await _userManager.GetClaimsAsync(user);
@@ -105,132 +118,136 @@ namespace CandidateDashboardApi.Services
 
             var claims = new List<Claim>
             {
-                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                 new Claim(JwtRegisteredClaimNames.Sub, user.Email!),
                  new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                  new Claim(ClaimTypes.NameIdentifier, user.Id),
 
-            }
-            .Union(userClaims).ToList();
+            }.Union(userClaims).ToList();
 
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expires = DateTime.Now.AddHours(2);
 
             var token = new JwtSecurityToken(
                 _configuration["Jwt:Issuer"],
                 _configuration["Jwt:Audience"],
                 claims,
-                expires: expires,
-                signingCredentials: creds
-            );
+                expires: DateTime.Now.AddHours(2),
+                signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         public async Task<ApiResponse<string>> LoginUserAsync(string login, string password)
         {
-            _logger.LogInformation("Login attempt for {Login}", login);
-
-            var user = await _userManager.FindByNameAsync(login);
-            if (user == null)
+            try
             {
-                _logger.LogWarning("{methodName} -> Login failed for {Login}: User not found", nameof(LoginUserAsync), login);
-                return new ApiResponse<string>(new List<string> { $"User not found." }, "User not found");
-            }
+                _logger.LogInformation("Login attempt for {Login}", login);
 
-            var result = await _signInManager.PasswordSignInAsync(user.UserName, password, isPersistent: true, lockoutOnFailure: false);
-            if (!result.Succeeded)
+                var user = await _userManager.FindByNameAsync(login);
+                if (user == null)
+                {
+                    _logger.LogWarning("{methodName} -> Login failed for {Login}: User not found", nameof(LoginUserAsync), login);
+
+                    return new ApiResponse<string>(new List<string> { $"User not found." }, "User not found");
+                }
+
+                var result = await _signInManager.PasswordSignInAsync(user.UserName, password, isPersistent: true, lockoutOnFailure: false);
+                if (!result.Succeeded)
+                {
+                    _logger.LogWarning("{MethodName} ->  Login failed for {Login}", nameof(LoginUserAsync), login);
+
+                    return new ApiResponse<string>(new List<string> { $"Invalid login attempt." }, "Invalid login attempt");
+                }
+
+                var token = await GenerateJwtTokenAsync(user.Email);
+
+                return new ApiResponse<string>(token, "Login successful.");
+            }
+            catch (InvalidOperationException ex)
             {
-                _logger.LogWarning("{MethodName} ->  Login failed for {Login}", nameof(LoginUserAsync), login);
-                return new ApiResponse<string>(new List<string> { $"Invalid login attempt." }, "Invalid login attempt") { Success = false };
+                _logger.LogError("{MethodName} -> Exception: {ex} during the login process for {Login}.", nameof(LoginUserAsync), ex, login);
+
+                return new ApiResponse<string>(new List<string> { ex.Message }, "Unexpected exepction during login");
             }
-
-            var token = await GenerateJwtTokenAsync(user.Email);
-
-            _logger.LogInformation("{MethodName} ->  Login successful for {Login}", nameof(LoginUserAsync), login);
-            return new ApiResponse<string>(token, "Login successful.");
         }
 
-        public async Task<bool> ConfirmUserEmailAsync(string email, string token)
+        public async Task<ApiResponse<bool>> ConfirmUserEmailAsync(string email, string token)
         {
-            _logger.LogInformation("Attempting to confirm email for user: {Email}", email);
+            _logger.LogInformation("{MethodName} -> Attempting to confirm email for user: {Email}", nameof(ConfirmUserEmailAsync), email);
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
             {
-                return false;
+                return new ApiResponse<bool>(false, "Email or token is null or empty");
             }
 
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                _logger.LogError("Email confirmation failed: user with email does not exist {Email}", email);
-                throw new InvalidOperationException("User was null");
+                _logger.LogError("{MethodName} -> Email confirmation failed: user with email does not exist {Email}", nameof(ConfirmUserEmailAsync), email);
+
+                return new ApiResponse<bool>(false, "User with provided email does not exist");
             }
 
             var result = await _userManager.ConfirmEmailAsync(user, Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token)));
             if (result.Succeeded)
             {
-                _logger.LogInformation("Email successfully confirmed: {Email}", email);
-            }
-            else
-            {
-                _logger.LogError("Email confirmation failed: {Email}. Errors: {Errors}", email, string.Join(", ", result.Errors.Select(e => e.Description)));
+                _logger.LogInformation("{MethodName} -> Email successfully confirmed for: {Email}", nameof(ConfirmUserEmailAsync), email);
+
+                return new ApiResponse<bool>(true, "Email successfully confirmed.");
             }
 
-            return result.Succeeded;
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            _logger.LogError("{MethodName} -> Email confirmation failed for: {Email}. Errors: {Errors}", nameof(ConfirmUserEmailAsync), email, errors);
+
+            return new ApiResponse<bool>(false, $"Email confirmation failed. Errors: {errors}");
         }
 
-        public async Task ForgotPasswordAsync(string email)
+        public async Task<ApiResponse<bool>> ForgotPasswordAsync(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
 
             if (user != null)
             {
                 var token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await _userManager.GeneratePasswordResetTokenAsync(user)));
-                //test
                 var callbackUrl = $"http://localhost:4200/welcome/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";
-                _logger.LogInformation("User {email} changed password", email);
+                _logger.LogInformation("{MethodName} -> User {Email} requested password reset", nameof(ForgotPasswordAsync), email);
 
+                await _emailService.SendEmailAsync(user.Email, "Reset hasła", $"Aby zresetować hasło kliknij <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>tutaj</a>.");
 
-                await _emailService.SendEmailAsync(user.Email, "Reset hasła",
-                    $"Aby zresetować hasło kliknij <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>tutaj</a>.");
+                return new ApiResponse<bool>(true, "Reset link was sent.");
             }
+
+            _logger.LogWarning("{MethodName} -> Forgot password request for user who does not exist: {Email}", nameof(ForgotPasswordAsync), email);
+
+            return new ApiResponse<bool>(false, "User not found.");
         }
 
-        public async Task<IdentityResult> ResetPasswordAsync(string email, string token, string password)
+        public async Task<ApiResponse<bool>> ResetPasswordAsync(string email, string token, string password)
         {
             var user = await _userManager.FindByEmailAsync(email);
-
             if (user == null)
             {
-                _logger.LogWarning($"{nameof(ResetPasswordAsync)}: user with provided email not found: {email}.");
-                throw new InvalidOperationException($"user with provided email: {email} not found.");
+                _logger.LogWarning("{MethodName} -> User with provided email not found: {Email}", nameof(ResetPasswordAsync), email);
+
+                return new ApiResponse<bool>(false, $"User with provided email: {email} not found.");
             }
 
-            try
+            var result = await _userManager.ResetPasswordAsync(user, Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token)), password);
+            if (result.Succeeded)
             {
-                var result = await _userManager.ResetPasswordAsync(user, Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token)), password);
+                _logger.LogInformation("{MethodName} -> Password reset successful for {Email}", nameof(ResetPasswordAsync), email);
 
-                if (result.Succeeded)
-                {
-                    _logger.LogInformation($"{nameof(ResetPasswordAsync)} for {user.Email} completed successfully.");
-                    return result;
-                }
+                return new ApiResponse<bool>(true, "Password has been reset successfully.");
+            }
 
-                var errorDescription = string.Join(", ", result.Errors.Select(e => e.Description));
-                _logger.LogError($"ResetPasswordAsync for {user.Email} completed unsuccessfully: {errorDescription}");
-                throw new InvalidOperationException($"ResetPasswordAsync for {user.Email} completed unsuccessfully: {errorDescription}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Exception occurred during password reset for {user.Email}: {ex.Message}");
-                throw;
-            }
+            var errorDescription = string.Join(", ", result.Errors.Select(e => e.Description));
+            _logger.LogError("{MethodName} -> Password reset for {Email} failed: {ErrorDescription}", nameof(ResetPasswordAsync), email, errorDescription);
+
+            return new ApiResponse<bool>(false, $"Password reset failed: {errorDescription}");
         }
-
     }
 }

@@ -1,10 +1,7 @@
 ﻿using CandidateDashboardApi.Models;
 using CandidateDashboardApi.Models.AccountServiceModels;
-using CandidateDashboardApi.Models.ResponseModels;
-using CandidateDashboardApi.Models.ResponseModels.AccountServiceResponses;
 using CandidateDashboardApi.Models.ResponseModels.EmployerServiceResponses;
 using CandidateDashboardApi.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 
@@ -59,12 +56,13 @@ namespace CandidateDashboardApi.Controllers
         {
             try
             {
-                var result = await _accountService.ConfirmUserEmailAsync(email, token);
-                return Ok(new ConfirmEmailResponse { Message = $"Email successfully confirmed. {result}" });
+                var response = await _accountService.ConfirmUserEmailAsync(email, token);
+                return response.Success ? Ok(response) : BadRequest(response);
+
             }
             catch (Exception ex)
             {
-                return BadRequest(new ConfirmEmailResponse { Message = $"Failed to confirm email. {ex.Message}" });
+                return StatusCode(500, new ApiResponse<string>(new List<string> { ex.Message }, "Unexpected error occurred during confirming email."));
             }
         }
 
@@ -74,12 +72,12 @@ namespace CandidateDashboardApi.Controllers
         {
             try
             {
-                await _accountService.ForgotPasswordAsync(model.Email);
-                return Ok(new ForgotPasswordResponse { Message = "Check your email, reset link was sent." });
+                var response = await _accountService.ForgotPasswordAsync(model.Email);
+                return response.Success ? Ok(response) : BadRequest(response);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return StatusCode(500, new ApiResponse<string>(new List<string> { ex.Message }, $"Unexpected error occurred during forgotPasword"));
             }
         }
 
@@ -87,21 +85,15 @@ namespace CandidateDashboardApi.Controllers
         [Route("ResetPassword")]
         public async Task<IActionResult> ResetPasswordAsync(string email, string token, [FromBody] ResetPaswordRequestModel model)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest("Invalid data.");
+                var response = await _accountService.ResetPasswordAsync(email, token, model.Password);
+                return response.Success ? Ok(response) : BadRequest(response);
             }
-
-            if (model.Password != model.ConfirmPassword)
+            catch (Exception ex)
             {
-                return BadRequest("Password and confirmation are not the same.");
+                return StatusCode(500, new ApiResponse<bool>(new List<string> { ex.Message }, $"An unexpected error occurred during reseting password"));
             }
-
-            var result = await _accountService.ResetPasswordAsync(email, token, model.Password);
-
-            return result.Succeeded
-                ? Ok(result)
-                : BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
     }
 }
