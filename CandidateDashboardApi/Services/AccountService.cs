@@ -48,7 +48,7 @@ namespace CandidateDashboardApi.Services
             _candidateDashboardContext = context;
             _configuration = configuration;
             _emailService = emailService;
-            _urlHelper = factory.GetUrlHelper(actionContextAccessor.ActionContext);
+            _urlHelper = factory.GetUrlHelper(actionContextAccessor.ActionContext!);
             _actionContextAccessor = actionContextAccessor;
             _logger = logger;
             _mapper = mapper;

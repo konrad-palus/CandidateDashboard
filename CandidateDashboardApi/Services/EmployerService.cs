@@ -34,26 +34,23 @@ namespace CandidateDashboardApi.Services
                     throw new Exception("User not found");
                 }
 
-                var employer = await _candidateDashboardContext.Employers.FirstOrDefaultAsync(e => e.Id == user.Id);
-                if (employer == null)
+              
+                if (user is Employer employer)
                 {
-                    employer = new Employer { Id = user.Id, CompanyName = companyName };
-                    _candidateDashboardContext.Employers.Add(employer);
+                    employer.CompanyName = companyName;
+                    await _userManager.UpdateAsync(employer);
+
+                    _logger.LogInformation("Company name updated successfully for user: {UserEmail}", userEmail);
+                    return companyName;
                 }
                 else
                 {
-                    employer.CompanyName = companyName;
-                    _candidateDashboardContext.Employers.Update(employer);
+                    throw new Exception("User is not an employer");
                 }
-
-                await _candidateDashboardContext.SaveChangesAsync();
-
-                _logger.LogInformation("Company name updated or created successfully for user: {UserEmail}", userEmail);
-                return companyName;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating or creating company name for user: {UserEmail}", userEmail);
+                _logger.LogError(ex, "Error updating company name for user: {UserEmail}", userEmail);
                 throw;
             }
         }
@@ -68,22 +65,22 @@ namespace CandidateDashboardApi.Services
                     throw new Exception("User not found");
                 }
 
-                var employer = await _candidateDashboardContext.Employers.FirstOrDefaultAsync(e => e.Id == user.Id);
-                if (employer == null)
+                if (user is Employer employer)
                 {
-                    employer = new Employer { Id = user.Id, CompanyDescription = companyDescription };
-                    _candidateDashboardContext.Employers.Add(employer);
+                    employer.CompanyDescription = companyDescription;
+                    var result = await _userManager.UpdateAsync(employer);
+                    if (!result.Succeeded)
+                    {
+                        throw new Exception($"Failed to update company description for {userEmail}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                    }
+
+                    _logger.LogInformation("Company description updated or created successfully for user: {UserEmail}", userEmail);
+                    return companyDescription;
                 }
                 else
                 {
-                    employer.CompanyDescription = companyDescription;
-                    _candidateDashboardContext.Employers.Update(employer);
+                    throw new Exception("User is not an employer");
                 }
-
-                await _candidateDashboardContext.SaveChangesAsync();
-
-                _logger.LogInformation("Company description updated or created successfully for user: {UserEmail}", userEmail);
-                return companyDescription;
             }
             catch (Exception ex)
             {
@@ -97,12 +94,12 @@ namespace CandidateDashboardApi.Services
             var user = await _userManager.FindByEmailAsync(userEmail);
             if (user == null)
             {
-                throw new Exception("User not found");
+                _logger.LogError("{MethodName}: User not found for email {UserEmail}", nameof(GetCompanyNameAsync), userEmail);
+                return "User not found";
             }
 
-            var employer = await _candidateDashboardContext.Employers.FirstOrDefaultAsync(e => e.Id == user.Id);
-
-            return employer.CompanyName ?? "Company name not set";
+            var employer = user as Employer; 
+            return employer?.CompanyName ?? "Company name is empty";
         }
 
         public async Task<string> GetCompanyDescriptionAsync(string userEmail)
@@ -110,12 +107,12 @@ namespace CandidateDashboardApi.Services
             var user = await _userManager.FindByEmailAsync(userEmail);
             if (user == null)
             {
-                throw new Exception("User not found");
+                _logger.LogError("{MethodName}: User not found for email {UserEmail}", nameof(GetCompanyDescriptionAsync), userEmail);
+                return "User not found";
             }
 
             var employer = await _candidateDashboardContext.Employers.FirstOrDefaultAsync(e => e.Id == user.Id);
-
-            return employer.CompanyDescription ?? "Company description not set";
+            return employer?.CompanyDescription ?? "Company description is empty";
         }
 
         public async Task<string> GenerateAndUpdateCompanyDescriptionAsync(string userEmail)
@@ -124,7 +121,7 @@ namespace CandidateDashboardApi.Services
             {
                 var companyName = "Generate company description for company:" + await GetCompanyNameAsync(userEmail);
 
-                if (companyName == "Company name not set")
+                if (companyName == "Company name is empty")
                 {
                     _logger.LogWarning("Attempt to generate company description for user: {UserEmail} without a set company name", userEmail);
                     throw new InvalidOperationException("Company name must be established before generating company description.");

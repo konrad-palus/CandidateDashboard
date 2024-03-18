@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Domain.Entities.CandidateEntities
+﻿namespace Domain.Entities.CandidateEntities
 {
     public class Candidate : ApplicationUser
     {

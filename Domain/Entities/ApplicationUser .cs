@@ -1,6 +1,4 @@
-﻿using Domain.Entities.CandidateEntities;
-using Microsoft.AspNetCore.Identity;
-using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace Domain.Entities
 {

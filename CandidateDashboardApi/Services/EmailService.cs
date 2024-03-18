@@ -1,10 +1,6 @@
-﻿using MimeKit;
+﻿using MailKit.Security;
+using MimeKit;
 using WebApi.Services.Interfaces;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using MailKit.Security;
-using System;
-using System.Threading.Tasks;
 
 namespace CandidateDashboardApi.Services
 {

@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿
+using AutoMapper;
 using CandidateDashboardApi.Models.EmployerServiceModels;
 using CandidateDashboardApi.Models.UserServiceModels;
 using Domain.Entities;
@@ -10,11 +11,10 @@ namespace CandidateDashboardApi.Helpers
     {
         public MapHelper()
         {
-            /*  CreateMap<ApplicationUser, UserDataModel>()
-             .ForMember(dest => dest.Employer, opt => opt.MapFrom(src => src.Employer));*/
-            CreateMap<UserUpdateModel, ApplicationUser>().ForAllMembers(c => c.Condition((s, d, sm) => sm != null));
-            CreateMap<Employer, EmployerDataModel>();
+            CreateMap<ApplicationUser, UserDataModel>();
 
+            CreateMap<Employer, UserDataModel>()
+                .IncludeBase<ApplicationUser, UserDataModel>();
 
 
             //registration
@@ -26,6 +26,7 @@ namespace CandidateDashboardApi.Helpers
                 .ForMember(d => d.Email, o => o.MapFrom(s => s.RegistrationEmail))
                 .ForMember(d => d.ContactEmail, o => o.MapFrom(s => s.RegistrationEmail));
 
+            CreateMap<UserDataModel, Employer>();
         }
     }
 }

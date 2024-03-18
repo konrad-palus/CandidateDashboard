@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
+using Azure;
 using CandidateDashboardApi.Interfaces;
 using CandidateDashboardApi.Models;
 using CandidateDashboardApi.Models.EmployerServiceModels;
 using CandidateDashboardApi.Models.ResponseModels.AccountServiceResponses;
 using CandidateDashboardApi.Models.UserServiceModels;
-using CandidateDashboardApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -16,11 +16,11 @@ namespace CandidateDashboardApi.Controllers
     public class UserController : ControllerBase
     {
         private readonly IBlobService _blobService;
-        private readonly UserService _userService;
+        private readonly IUserService _userService;
         private readonly IMapper _mapHelper;
         public UserController(
             IBlobService blobService,
-            UserService userService,
+            IUserService userService,
             IMapper mapHelper)
         {
             _blobService = blobService;
@@ -39,7 +39,7 @@ namespace CandidateDashboardApi.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(new List<string> { ex.Message }, $"Unexpected error occurred during uploading photo"));
+                return BadRequest(ex.Message);
             }
         }
 
@@ -47,16 +47,14 @@ namespace CandidateDashboardApi.Controllers
         [HttpGet("GetPhoto")]
         public async Task<IActionResult> GetUserPhoto()
         {
-            var userEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-
             try
             {
-                var response = await _userService.GetUserPhotoUrlAsync(userEmail!);
-                return response.Success ? Ok(response) : BadRequest(response);
+                var userPhoto = await _userService.GetUserPhotoUrlAsync(User);
+                return userPhoto.Success ? Ok(userPhoto) : BadRequest(userPhoto);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<string>(new List<string> { ex.Message }, $"Unexpected error occurred while getting photo"));
+                return BadRequest(ex.Message);
             }
         }
 
@@ -67,33 +65,26 @@ namespace CandidateDashboardApi.Controllers
             try
             {
                 var userData = await _userService.GetUserDataAsync(User);
-                return Ok(new GetUserDataResponse { UserData = userData, Message = "User data retrieval successful." });
+                return userData.Success ? Ok(userData) : BadRequest(userData);
             }
             catch (Exception ex)
             {
-                return BadRequest(new GetUserDataResponse { Message = $"Failed to retrieve user data. {ex.Message}" });
+                return BadRequest(ex.Message);
             }
         }
 
         [Authorize]
         [HttpPost("UpdateUserDetails")]
-        public async Task<IActionResult> UpdateUserData([FromBody] UserUpdateModel userUpdateModel)
+        public async Task<IActionResult> UpdateUserData([FromBody] UserDataModel userUpdateModel)
         {
             try
             {
-                var updatedUser = await _userService.UpdateUserAsync(User, userUpdateModel);
-                var userResponse = _mapHelper.Map<UserDataModel>(updatedUser);
-
-                return Ok(userResponse);
-            }
-            catch (InvalidOperationException ex)
-            {
-
-                return BadRequest(new { Message = ex.Message });
+                var userDetails = await _userService.UpdateUserAsync(User, userUpdateModel);
+                return userDetails.Success ? Ok(userDetails) : BadRequest(userDetails);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ErrorResponseModel{ Message = "An unexpected error occurred" });
+                return BadRequest(ex.Message);
             }
         }
     }

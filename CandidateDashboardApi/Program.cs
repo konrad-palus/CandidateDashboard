@@ -70,7 +70,7 @@ var openApiKey = builder.Configuration["OpenAPI"];*/
 
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<EmployerService>();
-builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBlobService, BlobService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>(provider =>
 {
