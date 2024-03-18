@@ -1,4 +1,4 @@
-Candidate Dashboard(under development)
+*Candidate Dashboard* (under development)
 
 Introduction
 The entire application is to be based on reversing the standard job search process - employers will be able to browse candidates' offers
