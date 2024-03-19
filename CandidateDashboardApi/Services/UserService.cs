@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using CandidateDashboardApi.Interfaces;
 using CandidateDashboardApi.Models;
-using CandidateDashboardApi.Models.EmployerServiceModels;
 using CandidateDashboardApi.Models.UserServiceModels;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -44,6 +43,7 @@ namespace CandidateDashboardApi.Services
 
             _logger.LogInformation("{MethodName} Attempting to find user by Email: {userEmail}", nameof(GetUserDataAsync), userEmail);
             var user = await _userManager.FindByEmailAsync(userEmail);
+
             if (user == null)
             {
                 _logger.LogWarning($"User not found for Email: {userEmail}");
@@ -66,6 +66,7 @@ namespace CandidateDashboardApi.Services
             try
             {
                 var user = await _userManager.FindByEmailAsync(userEmail);
+
                 if (user == null)
                 {
                     _logger.LogWarning("{MethodName} -> User not found for email: {Email}", nameof(GetUserDataAsync), userEmail);
@@ -92,20 +93,20 @@ namespace CandidateDashboardApi.Services
 
         public async Task<ApiResponse<UserDataModel>> UpdateUserAsync(ClaimsPrincipal userClaims, UserDataModel userUpdateModel)
         {
-            var methodName = nameof(UpdateUserAsync);
             var userEmail = userClaims.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(userEmail))
             {
-                _logger.LogError("{MethodName} User email not found in claims.", methodName);
+                _logger.LogError("{MethodName} User email not found in claims.", nameof(UpdateUserAsync));
                 return new ApiResponse<UserDataModel>(data: null, message: "User email not found in claims.")
                 { Success = false, Errors = new List<string> { "User email not found in claims." } };
             }
 
             var user = await _userManager.FindByEmailAsync(userEmail);
+
             if (user == null)
             {
-                _logger.LogError("{MethodName} User not found.", methodName);
+                _logger.LogError("{MethodName} User not found.", nameof(UpdateUserAsync));
                 return new ApiResponse<UserDataModel>(data: null, message: "User not found.")
                 { Success = false, Errors = new List<string> { "User not found." } };
             }
@@ -115,14 +116,14 @@ namespace CandidateDashboardApi.Services
 
             if (!result.Succeeded)
             {
-                _logger.LogError("{MethodName} User update failed: {Errors}", methodName, string.Join(", ", result.Errors.Select(e => e.Description)));
+                _logger.LogError("{MethodName} User update failed: {Errors}", nameof(UpdateUserAsync), string.Join(", ", result.Errors.Select(e => e.Description)));
                 return new ApiResponse<UserDataModel>(data: null, message: "User update failed.")
                 { Success = false, Errors = result.Errors.Select(e => e.Description).ToList() };
             }
 
             _logger.LogInformation("Mapping ApplicationUser to UserDataModel");
             var updatedUserDto = _mapper.Map<UserDataModel>(user);
-            _logger.LogInformation("{MethodName} User updated successfully.", methodName);
+            _logger.LogInformation("{MethodName} User updated successfully.", nameof(UpdateUserAsync));
             return new ApiResponse<UserDataModel>(data: updatedUserDto, message: "User updated successfully.");
         }
     }

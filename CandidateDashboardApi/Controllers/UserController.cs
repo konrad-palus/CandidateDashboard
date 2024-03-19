@@ -1,9 +1,5 @@
 ﻿using AutoMapper;
-using Azure;
 using CandidateDashboardApi.Interfaces;
-using CandidateDashboardApi.Models;
-using CandidateDashboardApi.Models.EmployerServiceModels;
-using CandidateDashboardApi.Models.ResponseModels.AccountServiceResponses;
 using CandidateDashboardApi.Models.UserServiceModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,24 +7,21 @@ using System.Security.Claims;
 
 namespace CandidateDashboardApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class UserController : ControllerBase
     {
         private readonly IBlobService _blobService;
         private readonly IUserService _userService;
-        private readonly IMapper _mapHelper;
         public UserController(
             IBlobService blobService,
-            IUserService userService,
-            IMapper mapHelper)
+            IUserService userService)
         {
             _blobService = blobService;
             _userService = userService;
-            _mapHelper = mapHelper;
         }
 
-        [Authorize]
         [HttpPost("UploadPhoto")]
         public async Task<IActionResult> UploadPhoto([FromForm] IFormFile photo)
         {
@@ -43,7 +36,6 @@ namespace CandidateDashboardApi.Controllers
             }
         }
 
-        [Authorize]
         [HttpGet("GetPhoto")]
         public async Task<IActionResult> GetUserPhoto()
         {
@@ -58,7 +50,6 @@ namespace CandidateDashboardApi.Controllers
             }
         }
 
-        [Authorize]
         [HttpGet("GetUserData")]
         public async Task<IActionResult> GetUserData()
         {
@@ -73,7 +64,6 @@ namespace CandidateDashboardApi.Controllers
             }
         }
 
-        [Authorize]
         [HttpPost("UpdateUserDetails")]
         public async Task<IActionResult> UpdateUserData([FromBody] UserDataModel userUpdateModel)
         {
@@ -89,4 +79,3 @@ namespace CandidateDashboardApi.Controllers
         }
     }
 }
-
